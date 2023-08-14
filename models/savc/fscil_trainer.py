@@ -22,9 +22,9 @@ class FSCILTrainer(Trainer):
         else:
             self.transform = None
             self.num_trans = 0
-        '''
-        此处我将MYNET移入float()
-        '''
+        # '''
+        # 此处我将MYNET移入float()
+        # '''
         self.model = self.model = MYNET(self.args, mode=self.args.base_mode, trans=self.num_trans).float()
 #         self.model = nn.DataParallel(self.model, list(range(self.args.num_gpu)))
         self.model = self.model.cuda()
