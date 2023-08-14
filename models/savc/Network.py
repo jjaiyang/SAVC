@@ -242,93 +242,7 @@ class MYNET(nn.Module):
     # '''
     def forward(self, im_cla, im_q=None, im_k=None, labels=None, im_q_small=None, base_sess=True, txt=None,
                 last_epochs_new=False):
-        if self.mode != 'encoder' or 'semantic':
-            if im_q == None: # 没有im_q时
-                x = self.forward_metric(im_cla) # 仅进行classify logits计算
-                return x
-            else:
-                b = im_q.shape[0] #get batch size
-                logits_classify = self.forward_metric(im_cla) # 计算classify logits logits_classify是分类分支输出的logits,会经过softmax和交叉熵损失,进行分类任务的监督训练。
-                _, q = self.encode_q(im_q) # 获得query特征q
-                q = nn.functional.normalize(q, dim=1) # 对q进行normalize，因为后面直接拿去supcontrastive loss中算内积了
-                #看看选哪样的q合适
-                feat_dim = q.shape[-1] # 图像向量维度
-                q = q.unsqueeze(1) # bs x 1 x dim
-
-                if im_q_small is not None:
-                    im_q_small_resized = self.transform_small(im_q_small)
-                    _, q_small = self.encode_q(im_q_small_resized) # 计算small query特征q_small
-                    q_small = q_small.view(b, -1, feat_dim)  # bs x 4 x dim 调整shape 可能是裁剪出了四个small crop图像（num_crops）
-                    q_small = nn.functional.normalize(q_small, dim=-1)
-
-                # compute key features
-                with torch.no_grad():  # no gradient to keys
-                    self._momentum_update_key_encoder(base_sess)  # update the key encoder
-                    _, k = self.encode_k(im_k)  # keys: bs x dim
-                    k = nn.functional.normalize(k, dim=1)
-
-                # compute logits
-                # Einstein sum is more intuitive
-                # positive logits: Nx1
-                q_global = q
-                l_pos_global = (q_global * k.unsqueeze(1)).sum(2).view(-1, 1) # 计算q_global和k的点积,再求和压缩为一个数,view成[batch_size, 1]的SHAPE,得到全局图像的positive logits l_pos_global
-                l_pos_small = (q_small * k.unsqueeze(1)).sum(2).view(-1, 1)
-
-                # negative logits: NxK
-                l_neg_global = torch.einsum('nc,ck->nk', [q_global.view(-1, feat_dim), self.queue.clone().detach()]) # self.queue是特征队列,SHAPE是[dim, queue_size],包含历史batch的编码
-                l_neg_small = torch.einsum('nc,ck->nk', [q_small.view(-1, feat_dim), self.queue.clone().detach()]) # 用einsum计算q_global和self.queue的点积,得到[batch_size, queue_size]的negative logits l_neg_global
-
-                # logits: Nx(1+K)
-                logits_global = torch.cat([l_pos_global, l_neg_global], dim=1) # logits_global是全局图像的对比学习logits,SHAPE是[batch_size, 1 + queue_size
-                logits_small = torch.cat([l_pos_small, l_neg_small], dim=1)
-
-                # apply temperature
-                logits_global /= self.T
-                logits_small /= self.T
-
-                # '''
-                # targets的生成过程:
-                # 初始化一个全1的矩阵positive_target,shape是[batch_size, 1],表示每个样本自己是positive sample。
-                # 根据当前batch的labels和存储在queue中的历史labels,生成一个[batch_size, queue_size]的0-1矩阵targets。
-                # 具体是对每个样本:
-                #     如果该样本的label在queue中存在,则对应的queue位置为1,否则为0。
-                #     这样就标记出了当前batch与queue中哪些样本是同类的。
-                # 将positive_target和targets在dim=1上拼接,得到targets_global,shape是[batch_size, 1+queue_size]。
-                # 这样targets的第一列是positive sample,其余列标记queue中哪些样本是同类别。
-                # 将targets_global复制多份(copies等于小样本数量),得到targets_small。
-                # 举个详细例子:
-                # queue = [2, 3, 5, 1, 4]
-                # batch_labels = [1, 2, 5]
-                # positive_target = [[1], [1], [1]]
-                # targets = [[0, 0, 0, 1, 0], # 样本1与queue中的label 1同类 [1, 0, 0, 0, 0], # 样本2与queue中的label 2同类
-                # [0, 0, 1, 0, 0]] # 样本3与queue中的label 5同类
-                # targets_global = [[1, 0, 0, 1, 0], [1, 1, 0, 0, 0], [1, 0, 1, 0, 0]] # 在dim=1上拼接positive target
-                # targets_small = targets_global 重复copy num.crop次
-                # '''
-                # one-hot target from augmented image
-                positive_target = torch.ones((b, 1)).cuda() # positive_target是一个全1的tensor,shape是[batch_size, 1],表示query图像自己是positive sample。
-                # find same label images from label queue
-                # for the query with -1, all 
-                # targets通过比较labels和队列queue中的标签,找到与query标签相同的样本,标记为1
-                targets = ((labels[:, None] == self.label_queue[None, :]) & (labels[:, None] != -1)).float().cuda()
-                targets_global = torch.cat([positive_target, targets], dim=1) # targets_global将positive_target和targets在dim=1上拼接,得到全局图像的targets。
-                targets_small = targets_global.repeat_interleave(repeats=self.args.num_crops[1], dim=0) # targets_small重复targets_global得到小样本的targets（因为小图像的类别和之前的也是一样的）
-                labels_small = labels.repeat_interleave(repeats=self.args.num_crops[1], dim=0) # labels_small重复labels得到小样本对应的labels。
-
-                # dequeue and enqueue
-                if base_sess or (not base_sess and last_epochs_new):
-                    self._dequeue_and_enqueue(k, labels)
-                
-                return logits_classify, logits_global, logits_small, targets_global, targets_small
-
-        # '''
-        # logits_classify: 分类分支输出的logits,通过原始图像预测类别,用于分类任务。计算交叉熵损失。
-        # logits_global: 对比学习分支中,基于全局query图像和keys计算出的对比logits。
-        # logits_small: 对比学习分支中,基于小尺寸query图像和keys计算出的对比logits。
-        # targets_global: 对比学习分支中,基于全局query图像生成的targets,与logits_global一起计算对比loss。
-        # targets_small: 对比学习分支中,基于小尺寸query图像生成的targets,与logits_small一起计算对比loss。
-        # '''
-        elif self.mode == 'semantic':
+        if self.mode == 'semantic':
             if im_q == None:  # 没有im_q时
                 x = self.forward_metric(im_cla)  # 仅进行classify logits计算
                 return x
@@ -454,6 +368,102 @@ class MYNET(nn.Module):
                     self._dequeue_and_enqueue(k, labels)
 
                 return logits_classify, logits_global, logits_small, targets_global, targets_small, txt_ft
+
+        elif self.mode != ('encoder' or 'semantic'):
+            if im_q == None:  # 没有im_q时
+                x = self.forward_metric(im_cla)  # 仅进行classify logits计算
+                return x
+            else:
+                b = im_q.shape[0]  # get batch size
+                logits_classify = self.forward_metric(
+                    im_cla)  # 计算classify logits logits_classify是分类分支输出的logits,会经过softmax和交叉熵损失,进行分类任务的监督训练。
+                _, q = self.encode_q(im_q)  # 获得query特征q
+                q = nn.functional.normalize(q, dim=1)  # 对q进行normalize，因为后面直接拿去supcontrastive loss中算内积了
+                # 看看选哪样的q合适
+                feat_dim = q.shape[-1]  # 图像向量维度
+                q = q.unsqueeze(1)  # bs x 1 x dim
+
+                if im_q_small is not None:
+                    im_q_small_resized = self.transform_small(im_q_small)
+                    _, q_small = self.encode_q(im_q_small_resized)  # 计算small query特征q_small
+                    q_small = q_small.view(b, -1, feat_dim)  # bs x 4 x dim 调整shape 可能是裁剪出了四个small crop图像（num_crops）
+                    q_small = nn.functional.normalize(q_small, dim=-1)
+
+                # compute key features
+                with torch.no_grad():  # no gradient to keys
+                    self._momentum_update_key_encoder(base_sess)  # update the key encoder
+                    _, k = self.encode_k(im_k)  # keys: bs x dim
+                    k = nn.functional.normalize(k, dim=1)
+
+                # compute logits
+                # Einstein sum is more intuitive
+                # positive logits: Nx1
+                q_global = q
+                l_pos_global = (q_global * k.unsqueeze(1)).sum(2).view(-1,
+                                                                       1)  # 计算q_global和k的点积,再求和压缩为一个数,view成[batch_size, 1]的SHAPE,得到全局图像的positive logits l_pos_global
+                l_pos_small = (q_small * k.unsqueeze(1)).sum(2).view(-1, 1)
+
+                # negative logits: NxK
+                l_neg_global = torch.einsum('nc,ck->nk', [q_global.view(-1, feat_dim),
+                                                          self.queue.clone().detach()])  # self.queue是特征队列,SHAPE是[dim, queue_size],包含历史batch的编码
+                l_neg_small = torch.einsum('nc,ck->nk', [q_small.view(-1, feat_dim),
+                                                         self.queue.clone().detach()])  # 用einsum计算q_global和self.queue的点积,得到[batch_size, queue_size]的negative logits l_neg_global
+
+                # logits: Nx(1+K)
+                logits_global = torch.cat([l_pos_global, l_neg_global],
+                                          dim=1)  # logits_global是全局图像的对比学习logits,SHAPE是[batch_size, 1 + queue_size
+                logits_small = torch.cat([l_pos_small, l_neg_small], dim=1)
+
+                # apply temperature
+                logits_global /= self.T
+                logits_small /= self.T
+
+                # '''
+                # targets的生成过程:
+                # 初始化一个全1的矩阵positive_target,shape是[batch_size, 1],表示每个样本自己是positive sample。
+                # 根据当前batch的labels和存储在queue中的历史labels,生成一个[batch_size, queue_size]的0-1矩阵targets。
+                # 具体是对每个样本:
+                #     如果该样本的label在queue中存在,则对应的queue位置为1,否则为0。
+                #     这样就标记出了当前batch与queue中哪些样本是同类的。
+                # 将positive_target和targets在dim=1上拼接,得到targets_global,shape是[batch_size, 1+queue_size]。
+                # 这样targets的第一列是positive sample,其余列标记queue中哪些样本是同类别。
+                # 将targets_global复制多份(copies等于小样本数量),得到targets_small。
+                # 举个详细例子:
+                # queue = [2, 3, 5, 1, 4]
+                # batch_labels = [1, 2, 5]
+                # positive_target = [[1], [1], [1]]
+                # targets = [[0, 0, 0, 1, 0], # 样本1与queue中的label 1同类 [1, 0, 0, 0, 0], # 样本2与queue中的label 2同类
+                # [0, 0, 1, 0, 0]] # 样本3与queue中的label 5同类
+                # targets_global = [[1, 0, 0, 1, 0], [1, 1, 0, 0, 0], [1, 0, 1, 0, 0]] # 在dim=1上拼接positive target
+                # targets_small = targets_global 重复copy num.crop次
+                # '''
+                # one-hot target from augmented image
+                positive_target = torch.ones(
+                    (b, 1)).cuda()  # positive_target是一个全1的tensor,shape是[batch_size, 1],表示query图像自己是positive sample。
+                # find same label images from label queue
+                # for the query with -1, all
+                # targets通过比较labels和队列queue中的标签,找到与query标签相同的样本,标记为1
+                targets = ((labels[:, None] == self.label_queue[None, :]) & (labels[:, None] != -1)).float().cuda()
+                targets_global = torch.cat([positive_target, targets],
+                                           dim=1)  # targets_global将positive_target和targets在dim=1上拼接,得到全局图像的targets。
+                targets_small = targets_global.repeat_interleave(repeats=self.args.num_crops[1],
+                                                                 dim=0)  # targets_small重复targets_global得到小样本的targets（因为小图像的类别和之前的也是一样的）
+                labels_small = labels.repeat_interleave(repeats=self.args.num_crops[1],
+                                                        dim=0)  # labels_small重复labels得到小样本对应的labels。
+
+                # dequeue and enqueue
+                if base_sess or (not base_sess and last_epochs_new):
+                    self._dequeue_and_enqueue(k, labels)
+
+                return logits_classify, logits_global, logits_small, targets_global, targets_small
+
+        # '''
+        # logits_classify: 分类分支输出的logits,通过原始图像预测类别,用于分类任务。计算交叉熵损失。
+        # logits_global: 对比学习分支中,基于全局query图像和keys计算出的对比logits。
+        # logits_small: 对比学习分支中,基于小尺寸query图像和keys计算出的对比logits。
+        # targets_global: 对比学习分支中,基于全局query图像生成的targets,与logits_global一起计算对比loss。
+        # targets_small: 对比学习分支中,基于小尺寸query图像生成的targets,与logits_small一起计算对比loss。
+        # '''
 
         elif self.mode == 'encoder':
             x, _ = self.encode_q(im_cla) # 也是输出池化后的特征
