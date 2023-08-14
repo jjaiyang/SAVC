@@ -68,6 +68,9 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
         data_key = transform(data[2])
         data_small = transform(data_small)
         m = data_query.size()[0] // b
+
+        print(single_labels)
+
         joint_labels = torch.stack([single_labels*m+ii for ii in range(m)], 1).view(-1)
 
 # 加入文本编码器咯
