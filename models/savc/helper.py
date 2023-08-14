@@ -87,11 +87,13 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
         semantic_text = []
         for i in range(len(joint_labels)):
             if i < len(single_labels):
-                classname = classes[joint_labels[i] // m]
-                text = f'A photo about {classname}'
+                label_index = joint_labels[i].item() // m
+                classname = classes[label_index]
+                text = f'A image about {classname}'
             else:
-                classname = classes[(joint_labels[i] - 1) // m]
-                text = f'A rotated about {classname}'
+                label_index = (joint_labels[i].item() - 1) // m
+                classname = classes[label_index]
+                text = f'A 190 degree rotated image about {classname}'
             semantic_text.append(text)
 
         #如果不使用文本信息则修改下面这两行
