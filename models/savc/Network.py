@@ -146,12 +146,12 @@ class MYNET(nn.Module):
         
         if self.args.mlp:  # hack: brute-force replacement
             self.encoder_q.head.fc = nn.Sequential(
-                nn.Linear(self.num_features, self.num_features * 4), nn.ReLU(),
-                nn.Linear(self.num_features * 4, self.num_features), self.encoder_q.head.fc
+                nn.Linear(self.num_features, self.num_features * self.args.hidden_multi), nn.ReLU(),
+                nn.Linear(self.num_features * self.args.hidden_multi, self.num_features), self.encoder_q.head.fc
             )
             self.encoder_k.head.fc = nn.Sequential(
-                nn.Linear(self.num_features, self.num_features * 4), nn.ReLU(),
-                nn.Linear(self.num_features * 4, self.num_features), self.encoder_k.head.fc
+                nn.Linear(self.num_features, self.num_features * self.args.hidden_multi), nn.ReLU(),
+                nn.Linear(self.num_features * self.args.hidden_multi, self.num_features), self.encoder_k.head.fc
             )
 
         for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):

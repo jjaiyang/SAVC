@@ -41,6 +41,8 @@ def get_command_line_parser():
     # for
     parser.add_argument('-lamda', default=0.2, type=float,
                         help='coefficient of the semantic joint loss')
+    parser.add_argument('-hidden_multi', default=4, type=int,
+                        help='multi-coefficient for hidden layer numbers in MLP (default: 4)')
 
     parser.add_argument('-moco_dim', default=128, type=int,
                         help='feature dimension (default: 128)')
