@@ -169,7 +169,6 @@ class MYNET(nn.Module):
         self.transform_small = transforms.Compose([
             transforms.Resize(224),
             transforms.CenterCrop(224),
-            transforms.ToTensor()
         ])
 
     @torch.no_grad()
