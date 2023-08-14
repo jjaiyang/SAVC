@@ -47,7 +47,7 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
     model = model.train()
     tqdm_gen = tqdm(trainloader) # 使用tqdm包tqdm_gen获取dataloader的进度条迭代器,用于在训练时显示进度条。
 
-    criterion_txt = nn.CrossEntropyLoss()
+    # criterion_txt = nn.CrossEntropyLoss()
     for i, batch in enumerate(tqdm_gen, 1): # 循环遍历dataloader,同时显示进度条。
         data, single_labels = [_ for _ in batch] # 从batch中取出data和标签。
         b, c, h, w = data[1].shape # 获取data[1]的shape信息。
@@ -107,7 +107,7 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
                                                                                      im_q_small=data_small, txt=semantic_text)
         # print(joint_labels, encoded_text_features)
 
-        semantic_loss = criterion_txt(encoded_text_features, joint_labels)
+        semantic_loss = F.cross_entropy(encoded_text_features, joint_labels)
 
         # joint_preds, output_global, output_small, target_global, target_small = model(im_cla=data_classify, im_q=data_query, im_k=data_key, labels=joint_labels, im_q_small=data_small)
         loss_moco_global = criterion(output_global, target_global)
