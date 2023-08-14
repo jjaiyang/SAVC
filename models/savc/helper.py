@@ -71,7 +71,7 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
 # 加入文本编码器咯
         if args.fantasy == 'rotation2':
             # 定义通过类别序列生成语义信息
-            classes_file = 'data/CUB_200_2011/classes.txt'
+            classes_file = '/kaggle/input/data-file-for-svtc/data/CUB_200_2011/classes.txt'
             # 从类别文本文件中加载类别id到名称的映射
             with open(classes_file) as f:
                 classes_txt = f.read()
