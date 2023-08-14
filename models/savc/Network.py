@@ -311,7 +311,7 @@ class MYNET(nn.Module):
 
                 text_features = self.text_encoder(txt)
                 patches = self.text_to_patches(text_features)
-                txt_ft = self.encode_q(patches)
+                _, txt_ft = self.encode_q(patches)
 
                 q = nn.functional.normalize(q, dim=1)  # 对q进行normalize
                 feat_dim = q.shape[-1]  # 图像向量维度
