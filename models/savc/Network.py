@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import numpy as np
 from models.resnet18_encoder import *
 from models.resnet20_cifar import *
+from torchvision import transforms
 
 # '''
 # 加载clip和swin-T
@@ -165,6 +166,11 @@ class MYNET(nn.Module):
         self.register_buffer("queue_ptr", torch.zeros(1, dtype=torch.long))
         self.register_buffer("label_queue", torch.zeros(self.K).long() - 1)
 
+        self.transform_small = transforms.Compose([
+            transforms.Resize(224),
+            transforms.CenterCrop(224),
+            transforms.ToTensor()
+        ])
 
     @torch.no_grad()
     def _momentum_update_key_encoder(self, base_sess):
@@ -251,7 +257,8 @@ class MYNET(nn.Module):
                 q = q.unsqueeze(1) # bs x 1 x dim
 
                 if im_q_small is not None:
-                    _, q_small = self.encode_q(im_q_small) # 计算small query特征q_small
+                    im_q_small_resized = self.transform_small(im_q_small)
+                    _, q_small = self.encode_q(im_q_small_resized) # 计算small query特征q_small
                     q_small = q_small.view(b, -1, feat_dim)  # bs x 4 x dim 调整shape 可能是裁剪出了四个small crop图像（num_crops）
                     q_small = nn.functional.normalize(q_small, dim=-1)
 
@@ -336,7 +343,8 @@ class MYNET(nn.Module):
                 q = q.unsqueeze(1)  # bs x 1 x
 # 只加到这里之前，txt
                 if im_q_small is not None:
-                    _, q_small = self.encode_q(im_q_small)  # 计算small query特征q_small
+                    im_q_small_resized = self.transform_small(im_q_small)
+                    _, q_small = self.encode_q(im_q_small_resized)  # 计算small query特征q_small
                     q_small = q_small.view(b, -1, feat_dim)  # bs x 4 x dim 调整shape 可能是裁剪出了四个small crop图像（num_crops）
                     q_small = nn.functional.normalize(q_small, dim=-1)
 
@@ -399,7 +407,8 @@ class MYNET(nn.Module):
 # 只加到这里之前，txt
 
                 if im_q_small is not None:
-                    _, q_small = self.encode_q(im_q_small)  # 计算small query特征q_small
+                    im_q_small_resized = self.transform_small(im_q_small)
+                    _, q_small = self.encode_q(im_q_small_resized)  # 计算small query特征q_small
                     q_small = q_small.view(b, -1, feat_dim)  # bs x 4 x dim 调整shape 可能是裁剪出了四个small crop图像（num_crops）
                     q_small = nn.functional.normalize(q_small, dim=-1)
 
@@ -417,10 +426,8 @@ class MYNET(nn.Module):
                 l_pos_small = (q_small * k.unsqueeze(1)).sum(2).view(-1, 1)
 
                 # negative logits: NxK
-                l_neg_global = torch.einsum('nc,ck->nk', [q_global.view(-1, feat_dim),
-                                                          self.queue.clone().detach()])  # self.queue是特征队列,SHAPE是[dim, queue_size],包含历史batch的编码
-                l_neg_small = torch.einsum('nc,ck->nk', [q_small.view(-1, feat_dim),
-                                                         self.queue.clone().detach()])  # 用einsum计算q_global和self.queue的点积,得到[batch_size, queue_size]的negative logits l_neg_global
+                l_neg_global = torch.einsum('nc,ck->nk', [q_global.view(-1, feat_dim), self.queue.clone().detach()])  # self.queue是特征队列,SHAPE是[dim, queue_size],包含历史batch的编码
+                l_neg_small = torch.einsum('nc,ck->nk', [q_small.view(-1, feat_dim), self.queue.clone().detach()])  # 用einsum计算q_global和self.queue的点积,得到[batch_size, queue_size]的negative logits l_neg_global
 
                 # logits: Nx(1+K)
                 logits_global = torch.cat([l_pos_global, l_neg_global],

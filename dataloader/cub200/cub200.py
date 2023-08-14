@@ -35,18 +35,18 @@ class CUB200(Dataset):
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
-            '''
-            这个Normalize所使用的mean和std的值, 通常是在大规模数据集上进行统计得到的, 如ImageNet数据集。这个代码中使用的mean和std的值, 正是在ImageNet数据集上预计算得到的均值和标准差。
-            之所以使用这些特定的值进行归一化, 主要有以下原因:
-            把不同图像调整到同一量化范围, 便于网络处理
-                ImageNet数据集包含各种场景的图片, 每个像素值分布范围不同。使用数据集统计值进行归一化, 可以把所有图片调整到一个标准的量化范围内, 便于网络处理。
-            减少不同图像之间的光照、对比度等统计差异
-                不同图片由于拍摄条件等原因, 整体颜色、对比度统计值会有较大差异。使用固定值归一化可以减少这种统计差异, 使网络更专注于学习区分不同特征。
-            一致性
-                使用固定的值(如ImageNet统计值), 可以使不同的训练更具可比性, 也有利于使用预训练模型。
-            更易学习目标任务
-                减少输入数据的非关联统计变化, 可以帮助网络更加聚焦在学习如何解决目标任务上。
-            '''
+            # '''
+            # 这个Normalize所使用的mean和std的值, 通常是在大规模数据集上进行统计得到的, 如ImageNet数据集。这个代码中使用的mean和std的值, 正是在ImageNet数据集上预计算得到的均值和标准差。
+            # 之所以使用这些特定的值进行归一化, 主要有以下原因:
+            # 把不同图像调整到同一量化范围, 便于网络处理
+            #     ImageNet数据集包含各种场景的图片, 每个像素值分布范围不同。使用数据集统计值进行归一化, 可以把所有图片调整到一个标准的量化范围内, 便于网络处理。
+            # 减少不同图像之间的光照、对比度等统计差异
+            #     不同图片由于拍摄条件等原因, 整体颜色、对比度统计值会有较大差异。使用固定值归一化可以减少这种统计差异, 使网络更专注于学习区分不同特征。
+            # 一致性
+            #     使用固定的值(如ImageNet统计值), 可以使不同的训练更具可比性, 也有利于使用预训练模型。
+            # 更易学习目标任务
+            #     减少输入数据的非关联统计变化, 可以帮助网络更加聚焦在学习如何解决目标任务上。
+            # '''
             if base_sess:
                 self.data, self.targets = self.SelectfromClasses(self.data, self.targets, index) # 基础训练从需要的类中取
             else:
@@ -59,19 +59,19 @@ class CUB200(Dataset):
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ])
             self.data, self.targets = self.SelectfromClasses(self.data, self.targets, index)
-    '''
-    text_read:
-    读取文本文件, 返回文本行列表每行末尾的\n会被strip删除
-    list2dict:
-    将文本行列表转换为字典通过split分割每行, 第一个元素作为key, 第二个元素作为value如果key重复则报错最终返回key - value的字典它们的作用是把一个id和文本的映射文件, 转换成一个字典方便查找。
-    例如原文件内容为:
-    1 flower
-    2 cat
-    3 dog
-    text_read后返回['1 flower', '2 cat', '3 dog']
-    list2dict后返回:
-    {1: 'flower', 2: 'cat', 3: 'dog'}
-    '''
+    # '''
+    # text_read:
+    # 读取文本文件, 返回文本行列表每行末尾的\n会被strip删除
+    # list2dict:
+    # 将文本行列表转换为字典通过split分割每行, 第一个元素作为key, 第二个元素作为value如果key重复则报错最终返回key - value的字典它们的作用是把一个id和文本的映射文件, 转换成一个字典方便查找。
+    # 例如原文件内容为:
+    # 1 flower
+    # 2 cat
+    # 3 dog
+    # text_read后返回['1 flower', '2 cat', '3 dog']
+    # list2dict后返回:
+    # {1: 'flower', 2: 'cat', 3: 'dog'}
+    # '''
     def text_read(self, file):
         with open(file, 'r') as f:
             lines = f.readlines()
@@ -133,20 +133,20 @@ class CUB200(Dataset):
             targets_tmp.append(data2label[img_path]) # 从字典中取出该图像文件路径对应的标签,添加至标签列表。
 
         return data_tmp, targets_tmp
-    '''
-    假设原始的数据集有4个样本, 包括:
-    data = ['img1.jpg', 'img2.jpg', 'img3.jpg', 'img4.jpg']
-    targets = [0, 1, 1, 2]
-    这表示有3个类别, img1为类别0, img2和img3为类别1, img4为类别2。
-    现在我们筛选索引 index 为[1, 2], 表示需要类别1和类别2的样本。
-    执行过程如下:
-    i = 1, 在targets中找到类别标签等于1的样本索引为[1, 2]。
-    遍历[1, 2], 将data[1], data[2]和targets[1], targets[2]添加到tmp中。
-    i = 2, 找到类别标签等于2的样本索引为[3]。 遍历[3], 添加data[3]和targets[3]到tmp中。
-    结果:
-    data_tmp = ['img2.jpg', 'img3.jpg', 'img4.jpg']
-    targets_tmp = [1, 1, 2]
-    '''
+    # '''
+    # 假设原始的数据集有4个样本, 包括:
+    # data = ['img1.jpg', 'img2.jpg', 'img3.jpg', 'img4.jpg']
+    # targets = [0, 1, 1, 2]
+    # 这表示有3个类别, img1为类别0, img2和img3为类别1, img4为类别2。
+    # 现在我们筛选索引 index 为[1, 2], 表示需要类别1和类别2的样本。
+    # 执行过程如下:
+    # i = 1, 在targets中找到类别标签等于1的样本索引为[1, 2]。
+    # 遍历[1, 2], 将data[1], data[2]和targets[1], targets[2]添加到tmp中。
+    # i = 2, 找到类别标签等于2的样本索引为[3]。 遍历[3], 添加data[3]和targets[3]到tmp中。
+    # 结果:
+    # data_tmp = ['img2.jpg', 'img3.jpg', 'img4.jpg']
+    # targets_tmp = [1, 1, 2]
+    # '''
     def SelectfromClasses(self, data, targets, index): # 通过类别索引index([0 1 2 3 4 5 6]),从原始数据集中筛选出特定类别的样本
         data_tmp = []
         targets_tmp = []
