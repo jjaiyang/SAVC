@@ -97,6 +97,7 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
                 classname = classes[label_index]
                 text = f'A 190 degree rotated image about {classname}'
             semantic_text.append(text)
+        print(semantic_text)
 
         #如果不使用文本信息则修改下面这两行
         model.mode = 'semantic'
@@ -104,6 +105,7 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
                                                                                      im_q=data_query, im_k=data_key,
                                                                                      labels=joint_labels,
                                                                                      im_q_small=data_small, txt=semantic_text)
+        print(joint_labels, encoded_text_features)
 
         semantic_loss = criterion_txt(encoded_text_features, joint_labels)
 
