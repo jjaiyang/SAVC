@@ -15,26 +15,26 @@ from urllib.request import urlopen
 from urllib.parse import urlparse  # noqa: F401
 
 # 构造resnet
-'''
-根据代码的注释和实现,这段代码主要实现了以下功能:
-定义了常用的卷积模块conv1x1,conv3x3用于构建ResNet块。
-定义了基本块BasicBlock和瓶颈块Bottleneck,这是ResNet的基本构建模块。
-定义了ResNet类,实现了ResNet的整体结构。主要包含:
-    __init__方法构建网络,包含卷积层,池化层,4个stage的residual块。
-    _make_layer方法构建每个stage的residual块。
-    forward方法定义前向计算。
-定义了_resnet函数,用于构建不同深度的ResNet模型,如resnet18,resnet50等。
-定义了常见ResNet模型resnet18,resnet34,resnet50等的构建函数。
-定义了load_state_dict_from_url函数实现模型权重的下载,包括下载进度显示,文件校验等。
-定义了模型权重的URL常量表model_urls。
-最后构建了model_dict保存各模型的构建函数和输出特征维度。
-总结关键点:
-    实现了ResNet的基本块和整体框架
-    构建函数实现了不同深度ResNet模型
-    加载函数实现了预训练权重的下载
-    model_dict保存了各模型的功能
-这段代码整体实现了ResNet系列模型的构建、初始化和预训练权重加载,可以通过如model_dict方便获取不同ResNet模型用于图像特征提取等计算机视觉任务中。
-'''
+# '''
+# 根据代码的注释和实现,这段代码主要实现了以下功能:
+# 定义了常用的卷积模块conv1x1,conv3x3用于构建ResNet块。
+# 定义了基本块BasicBlock和瓶颈块Bottleneck,这是ResNet的基本构建模块。
+# 定义了ResNet类,实现了ResNet的整体结构。主要包含:
+#     __init__方法构建网络,包含卷积层,池化层,4个stage的residual块。
+#     _make_layer方法构建每个stage的residual块。
+#     forward方法定义前向计算。
+# 定义了_resnet函数,用于构建不同深度的ResNet模型,如resnet18,resnet50等。
+# 定义了常见ResNet模型resnet18,resnet34,resnet50等的构建函数。
+# 定义了load_state_dict_from_url函数实现模型权重的下载,包括下载进度显示,文件校验等。
+# 定义了模型权重的URL常量表model_urls。
+# 最后构建了model_dict保存各模型的构建函数和输出特征维度。
+# 总结关键点:
+#     实现了ResNet的基本块和整体框架
+#     构建函数实现了不同深度ResNet模型
+#     加载函数实现了预训练权重的下载
+#     model_dict保存了各模型的功能
+# 这段代码整体实现了ResNet系列模型的构建、初始化和预训练权重加载,可以通过如model_dict方便获取不同ResNet模型用于图像特征提取等计算机视觉任务中。
+# '''
 def load_state_dict_from_url(url, model_dir=None, map_location=None, progress=True):
     r"""Loads the Torch serialized object at the given URL.
 
@@ -91,15 +91,15 @@ def load_state_dict_from_url(url, model_dir=None, map_location=None, progress=Tr
         _download_url_to_file(url, cached_file, hash_prefix, progress=progress)
     return torch.load(cached_file, map_location=map_location)
 
-'''
-这段代码整体实现了一个稳定、可进度显示、有校验的文件下载过程,可以重用来自url下载大文件:
-获取文件大小用于进度显示
-用临时文件防止下载中断
-启用tqdm进度条显示下载进度
-循环分块读取文件并写入临时文件
-下载完成后校验hash并移动为目标文件
-删除临时文件,完成下载
-'''
+# '''
+# 这段代码整体实现了一个稳定、可进度显示、有校验的文件下载过程,可以重用来自url下载大文件:
+# 获取文件大小用于进度显示
+# 用临时文件防止下载中断
+# 启用tqdm进度条显示下载进度
+# 循环分块读取文件并写入临时文件
+# 下载完成后校验hash并移动为目标文件
+# 删除临时文件,完成下载
+# '''
 def _download_url_to_file(url, dst, hash_prefix, progress):
     file_size = None
     u = urlopen(url)
@@ -149,14 +149,14 @@ ENV_XDG_CACHE_HOME = 'XDG_CACHE_HOME'
 DEFAULT_CACHE_DIR = '~/.cache'
 HASH_REGEX = re.compile(r'-([a-f0-9]*)\.')
 
-'''
-这段代码主要功能是:
-优先获取ENV_TORCH_HOME作为torch缓存主目录
-如果不存在则依次尝试ENV_XDG_CACHE_HOME和默认目录
-将得到的目录展开为完整路径
-返回作为torch的home缓存目录
-这样可以支持自定义的缓存目录,同时也提供了默认的备选方案。
-'''
+# '''
+# 这段代码主要功能是:
+# 优先获取ENV_TORCH_HOME作为torch缓存主目录
+# 如果不存在则依次尝试ENV_XDG_CACHE_HOME和默认目录
+# 将得到的目录展开为完整路径
+# 返回作为torch的home缓存目录
+# 这样可以支持自定义的缓存目录,同时也提供了默认的备选方案。
+# '''
 def _get_torch_home():
     torch_home = os.path.expanduser(
         os.getenv(ENV_TORCH_HOME,

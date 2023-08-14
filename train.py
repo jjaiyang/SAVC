@@ -36,7 +36,7 @@ def get_command_line_parser():
     parser.add_argument('-batch_size_new', type=int, default=0, help='set 0 will use all the availiable training image for new')
     parser.add_argument('-test_batch_size', type=int, default=100)
     parser.add_argument('-base_mode', type=str, default='ft_cos') # using cosine classifier
-    parser.add_argument('-new_mode', type=str, default='avg_cos') # using average data embedding and cosine classifier
+    parser.add_argument('-new_mode', type=str, default='avg_cos') # using average data embedding and cosine classifier # 先用平均向量填充全连接层
 
     # for
     parser.add_argument('-lamda', default=0.2, type=float,
