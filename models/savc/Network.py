@@ -7,9 +7,9 @@ import numpy as np
 from models.resnet18_encoder import *
 from models.resnet20_cifar import *
 
-'''
-加载clip和swin-T
-'''
+# '''
+# 加载clip和swin-T
+# '''
 import clip
 import timm
 
@@ -21,49 +21,49 @@ from torchvision import transforms
 from torchvision import datasets
 
 
-'''
-定义了Backbone网络MYNET,包含resnet18和resnet20作为编码器。
-在__init__中构建网络,包含query编码器,key编码器,全连接层,queue等。
-定义了momentum update key encoder的方法_momentum_update_key_encoder,用于更新key encoder。
-定义了dequeue和enqueue的方法_dequeue_and_enqueue,用于更新queue。
-定义了query和key的编码方法encode_q和encode_k。
-    在forward中实现了训练和测试时的前向传播过程。
-    在训练时计算classify logits,global contrastive logits,small contrastive logits。
-    计算global和small的positive logits和negative logits。
-    根据queue更新target。
-    在测试时进行nearest class mean预测。
-定义了更新fc层的方法update_fc,用于类增量学习。
-定义了利用平均特征更新fc的方法update_fc_avg。
-定义了计算logits的方法get_logits。
-'''
-
-'''
-cub200时,网络参数:
-编码器backbone: resnet18
-输入:224x224x3
-conv1: 7x7, 64 filters, stride 2, 输出 112x112x64
-maxpool1: 3x3, stride 2, 输出 56x56x64
-layer1:
-    2个basic block
-    [3x3, 64] - [3x3, 64]
-    输出 56x56x64
-layer2:
-    2个basic block
-    [3x3, 128] - [3x3, 128]
-    通过1x1 conv下采样,输出 28x28x128
-layer3:
-    2个basic block
-    [3x3, 256] - [3x3, 256]
-    通过1x1 conv下采样,输出 14x14x256
-layer4:
-    2个basic block
-    [3x3, 512] - [3x3, 512]
-    通过1x1 conv下采样,输出 7x7x512
-avg pool: 7x7 -> 1x1
-全连接层fc:
-    输入512个特征
-    输出100个类别得分
-'''
+# '''
+# 定义了Backbone网络MYNET,包含resnet18和resnet20作为编码器。
+# 在__init__中构建网络,包含query编码器,key编码器,全连接层,queue等。
+# 定义了momentum update key encoder的方法_momentum_update_key_encoder,用于更新key encoder。
+# 定义了dequeue和enqueue的方法_dequeue_and_enqueue,用于更新queue。
+# 定义了query和key的编码方法encode_q和encode_k。
+#     在forward中实现了训练和测试时的前向传播过程。
+#     在训练时计算classify logits,global contrastive logits,small contrastive logits。
+#     计算global和small的positive logits和negative logits。
+#     根据queue更新target。
+#     在测试时进行nearest class mean预测。
+# 定义了更新fc层的方法update_fc,用于类增量学习。
+# 定义了利用平均特征更新fc的方法update_fc_avg。
+# 定义了计算logits的方法get_logits。
+# '''
+#
+# '''
+# cub200时,网络参数:
+# 编码器backbone: resnet18
+# 输入:224x224x3
+# conv1: 7x7, 64 filters, stride 2, 输出 112x112x64
+# maxpool1: 3x3, stride 2, 输出 56x56x64
+# layer1:
+#     2个basic block
+#     [3x3, 64] - [3x3, 64]
+#     输出 56x56x64
+# layer2:
+#     2个basic block
+#     [3x3, 128] - [3x3, 128]
+#     通过1x1 conv下采样,输出 28x28x128
+# layer3:
+#     2个basic block
+#     [3x3, 256] - [3x3, 256]
+#     通过1x1 conv下采样,输出 14x14x256
+# layer4:
+#     2个basic block
+#     [3x3, 512] - [3x3, 512]
+#     通过1x1 conv下采样,输出 7x7x512
+# avg pool: 7x7 -> 1x1
+# 全连接层fc:
+#     输入512个特征
+#     输出100个类别得分
+# '''
 # 定义文本编码器，调用预训练的CLIP
 class TextEncoder(nn.Module):
     def __init__(self):
@@ -128,10 +128,10 @@ class MYNET(nn.Module):
             self.num_features = 768
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
-        '''
-        在SAVC中直接训练SV-T，以上方法就可以了
-        如果是加载预训练的backbone的话，需要再添加一层FC层
-        '''
+        # '''
+        # 在SAVC中直接训练SV-T，以上方法就可以了
+        # 如果是加载预训练的backbone的话，需要再添加一层FC层
+        # '''
 
         self.fc = nn.Linear(self.num_features, self.args.num_classes*trans, bias=False)
         # self.fc = nn.Sequential(
@@ -209,12 +209,12 @@ class MYNET(nn.Module):
 
         return x # joint, contrastive
 
-    '''
-    F.adaptive_avg_pool2d会将特征图x适配到1x1的尺寸,即Global Average Pooling。
-    这就使得不管输入图像的原始大小（大图和小图）是什么,
-    输出的x都被Pool到同样的1x1尺寸,相当于一个固定长度的特征向量。
-    所以同一个encoder可以接受不同尺寸的输入图像。
-    '''
+    # '''
+    # F.adaptive_avg_pool2d会将特征图x适配到1x1的尺寸,即Global Average Pooling。
+    # 这就使得不管输入图像的原始大小（大图和小图）是什么,
+    # 输出的x都被Pool到同样的1x1尺寸,相当于一个固定长度的特征向量。
+    # 所以同一个encoder可以接受不同尺寸的输入图像。
+    # '''
     def encode_q(self, x):
         a = self.encoder_q.forward_features(x).permute(0, 3, 1, 2) # torch.Size([1, 7, 7, 768]) 转成torch.Size([1, 768, 7, 7])
         b = self.encoder_q(x)
@@ -229,15 +229,15 @@ class MYNET(nn.Module):
         a = a.squeeze(-1).squeeze(-1)
         return a, b # torch.Size([n, 768, 7, 7]) torch.Size([n, 128])
 
-    '''
-    im_cla是不经过变换的原始图像,用于分类预测,计算classify logits。
-    im_q是对im_cla进行增强和变换得到的查询图像,用于计算contrastive学习中的query特征。
-    如果有im_q_small,则是对im_q进行crop得到的小尺寸查询图像,用于计算small contrastive loss。
-    im_k是对im_cla进行增强和变换得到的关键图像,用于contrastive学习中的key特征。
-    '''
+    # '''
+    # im_cla是不经过变换的原始图像,用于分类预测,计算classify logits。
+    # im_q是对im_cla进行增强和变换得到的查询图像,用于计算contrastive学习中的query特征。
+    # 如果有im_q_small,则是对im_q进行crop得到的小尺寸查询图像,用于计算small contrastive loss。
+    # im_k是对im_cla进行增强和变换得到的关键图像,用于contrastive学习中的key特征。
+    # '''
     def forward(self, im_cla, im_q=None, im_k=None, labels=None, im_q_small=None, base_sess=True, txt=None,
                 last_epochs_new=False):
-        if self.mode != ('encoder' or 'semantic'):
+        if self.mode != 'encoder' or 'semantic':
             if im_q == None: # 没有im_q时
                 x = self.forward_metric(im_cla) # 仅进行classify logits计算
                 return x
@@ -280,25 +280,25 @@ class MYNET(nn.Module):
                 logits_global /= self.T
                 logits_small /= self.T
 
-                '''
-                targets的生成过程:
-                初始化一个全1的矩阵positive_target,shape是[batch_size, 1],表示每个样本自己是positive sample。
-                根据当前batch的labels和存储在queue中的历史labels,生成一个[batch_size, queue_size]的0-1矩阵targets。
-                具体是对每个样本:
-                    如果该样本的label在queue中存在,则对应的queue位置为1,否则为0。
-                    这样就标记出了当前batch与queue中哪些样本是同类的。
-                将positive_target和targets在dim=1上拼接,得到targets_global,shape是[batch_size, 1+queue_size]。
-                这样targets的第一列是positive sample,其余列标记queue中哪些样本是同类别。
-                将targets_global复制多份(copies等于小样本数量),得到targets_small。
-                举个详细例子:
-                queue = [2, 3, 5, 1, 4]
-                batch_labels = [1, 2, 5]
-                positive_target = [[1], [1], [1]]
-                targets = [[0, 0, 0, 1, 0], # 样本1与queue中的label 1同类 [1, 0, 0, 0, 0], # 样本2与queue中的label 2同类
-                [0, 0, 1, 0, 0]] # 样本3与queue中的label 5同类
-                targets_global = [[1, 0, 0, 1, 0], [1, 1, 0, 0, 0], [1, 0, 1, 0, 0]] # 在dim=1上拼接positive target
-                targets_small = targets_global 重复copy num.crop次
-                '''
+                # '''
+                # targets的生成过程:
+                # 初始化一个全1的矩阵positive_target,shape是[batch_size, 1],表示每个样本自己是positive sample。
+                # 根据当前batch的labels和存储在queue中的历史labels,生成一个[batch_size, queue_size]的0-1矩阵targets。
+                # 具体是对每个样本:
+                #     如果该样本的label在queue中存在,则对应的queue位置为1,否则为0。
+                #     这样就标记出了当前batch与queue中哪些样本是同类的。
+                # 将positive_target和targets在dim=1上拼接,得到targets_global,shape是[batch_size, 1+queue_size]。
+                # 这样targets的第一列是positive sample,其余列标记queue中哪些样本是同类别。
+                # 将targets_global复制多份(copies等于小样本数量),得到targets_small。
+                # 举个详细例子:
+                # queue = [2, 3, 5, 1, 4]
+                # batch_labels = [1, 2, 5]
+                # positive_target = [[1], [1], [1]]
+                # targets = [[0, 0, 0, 1, 0], # 样本1与queue中的label 1同类 [1, 0, 0, 0, 0], # 样本2与queue中的label 2同类
+                # [0, 0, 1, 0, 0]] # 样本3与queue中的label 5同类
+                # targets_global = [[1, 0, 0, 1, 0], [1, 1, 0, 0, 0], [1, 0, 1, 0, 0]] # 在dim=1上拼接positive target
+                # targets_small = targets_global 重复copy num.crop次
+                # '''
                 # one-hot target from augmented image
                 positive_target = torch.ones((b, 1)).cuda() # positive_target是一个全1的tensor,shape是[batch_size, 1],表示query图像自己是positive sample。
                 # find same label images from label queue
@@ -315,13 +315,13 @@ class MYNET(nn.Module):
                 
                 return logits_classify, logits_global, logits_small, targets_global, targets_small
 
-        '''
-        logits_classify: 分类分支输出的logits,通过原始图像预测类别,用于分类任务。计算交叉熵损失。
-        logits_global: 对比学习分支中,基于全局query图像和keys计算出的对比logits。
-        logits_small: 对比学习分支中,基于小尺寸query图像和keys计算出的对比logits。
-        targets_global: 对比学习分支中,基于全局query图像生成的targets,与logits_global一起计算对比loss。
-        targets_small: 对比学习分支中,基于小尺寸query图像生成的targets,与logits_small一起计算对比loss。
-        '''
+        # '''
+        # logits_classify: 分类分支输出的logits,通过原始图像预测类别,用于分类任务。计算交叉熵损失。
+        # logits_global: 对比学习分支中,基于全局query图像和keys计算出的对比logits。
+        # logits_small: 对比学习分支中,基于小尺寸query图像和keys计算出的对比logits。
+        # targets_global: 对比学习分支中,基于全局query图像生成的targets,与logits_global一起计算对比loss。
+        # targets_small: 对比学习分支中,基于小尺寸query图像生成的targets,与logits_small一起计算对比loss。
+        # '''
         elif self.mode == 'semantic':
             if im_q == None:  # 没有im_q时
                 x = self.forward_metric(im_cla)  # 仅进行classify logits计算
@@ -354,10 +354,8 @@ class MYNET(nn.Module):
                 l_pos_small = (q_small * k.unsqueeze(1)).sum(2).view(-1, 1)
 
                 # negative logits: NxK
-                l_neg_global = torch.einsum('nc,ck->nk', [q_global.view(-1, feat_dim),
-                                                          self.queue.clone().detach()])  # self.queue是特征队列,SHAPE是[dim, queue_size],包含历史batch的编码
-                l_neg_small = torch.einsum('nc,ck->nk', [q_small.view(-1, feat_dim),
-                                                         self.queue.clone().detach()])  # 用einsum计算q_global和self.queue的点积,得到[batch_size, queue_size]的negative logits l_neg_global
+                l_neg_global = torch.einsum('nc,ck->nk', [q_global.view(-1, feat_dim),self.queue.clone().detach()])  # self.queue是特征队列,SHAPE是[dim, queue_size],包含历史batch的编码
+                l_neg_small = torch.einsum('nc,ck->nk', [q_small.view(-1, feat_dim),self.queue.clone().detach()])  # 用einsum计算q_global和self.queue的点积,得到[batch_size, queue_size]的negative logits l_neg_global
 
                 # logits: Nx(1+K)
                 logits_global = torch.cat([l_pos_global, l_neg_global],
@@ -492,18 +490,18 @@ class MYNET(nn.Module):
         new_fc=torch.stack(new_fc,dim=0) # 转换new_fc格式
         return new_fc
 
-    '''
-    用于后续计算joint loss
-    如果是'dot'模式,直接计算线性logits
-    如果是'cos'模式：
-        对特征和权重分别做L2归一化
-        计算余弦相似度
-        调整temperature
-        返回logits
-        
-    get_logits: 输入特征x和全连接层权重fc。
-    forward_metric: 输入图像数据x。
-    '''
+    # '''
+    # 用于后续计算joint loss
+    # 如果是'dot'模式,直接计算线性logits
+    # 如果是'cos'模式：
+    #     对特征和权重分别做L2归一化
+    #     计算余弦相似度
+    #     调整temperature
+    #     返回logits
+    #
+    # get_logits: 输入特征x和全连接层权重fc。
+    # forward_metric: 输入图像数据x。
+    # '''
 
     # 在finetuning阶段，logits是跟有全部seen 类上的全连接层进行计算，所以需要输入包含新类的fc，所以与forward_metric()区别
     def get_logits(self,x,fc):

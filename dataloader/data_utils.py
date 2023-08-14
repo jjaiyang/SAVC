@@ -5,9 +5,9 @@ from dataloader.sampler import CategoriesSampler
 from augmentations.constrained_cropping import CustomMultiCropDataset, CustomMultiCropping
 
 # 已读
-'''
-定义数据增强方式，读取Dataset类
-'''
+# '''
+# 定义数据增强方式，读取Dataset类
+# '''
 def set_up_datasets(args):
     if args.dataset == 'cifar100':
         import dataloader.cifar100.cifar as Dataset
@@ -32,12 +32,12 @@ def set_up_datasets(args):
         args.sessions = 9
     args.Dataset=Dataset
     return args
-'''
-所以图像经过crop_transform生成所需要的大裁剪和小裁剪
-然后再将这些裁剪经过随机/默认辅助增强
-小裁剪用于query encoder，便于捕获局部信息  
-大裁剪用于key encoder，增加多样性
-'''
+# '''
+# 所以图像经过crop_transform生成所需要的大裁剪和小裁剪
+# 然后再将这些裁剪经过随机/默认辅助增强
+# 小裁剪用于query encoder，便于捕获局部信息
+# 大裁剪用于key encoder，增加多样性
+# '''
 def get_transform(args):
     if args.dataset == 'cifar100':
         normalize = transforms.Normalize(mean=[0.5071, 0.4867, 0.4408],
@@ -48,18 +48,18 @@ def get_transform(args):
     if args.dataset == 'mini_imagenet':
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
-    '''
-    crop_transform
-    size_large：大裁剪的预期输出尺寸。
-    scale_large：大裁剪的原始尺寸范围。
-    size_small：小裁剪的预期输出尺寸。
-    scale_small：小裁剪的原始尺寸范围。
-    N_large：大裁剪的数量。
-    N_small：小裁剪的数量。
-    ratio：原始长宽比的范围。
-    interpolation：默认值为PIL.Image.BILINEAR。
-    condition_small_crops_on_key：是否将小裁剪与关键裁剪关联起来。
-    '''
+    # '''
+    # crop_transform
+    # size_large：大裁剪的预期输出尺寸。
+    # scale_large：大裁剪的原始尺寸范围。
+    # size_small：小裁剪的预期输出尺寸。
+    # scale_small：小裁剪的原始尺寸范围。
+    # N_large：大裁剪的数量。
+    # N_small：小裁剪的数量。
+    # ratio：原始长宽比的范围。
+    # interpolation：默认值为PIL.Image.BILINEAR。
+    # condition_small_crops_on_key：是否将小裁剪与关键裁剪关联起来。
+    # '''
     assert (len(args.size_crops) == 2) # 确认裁剪尺寸参数列表为2，如果是则继续
     crop_transform = CustomMultiCropping(size_large=args.size_crops[0],
                                          scale_large=(args.min_scale_crops[0], args.max_scale_crops[0]),

@@ -143,20 +143,20 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
 
 
 
-'''
-这段代码的主要作用是用训练集数据替换模型中fc层的权重,具体做法是:
-    用训练集DataLoader批量提取所有训练数据的特征向量embedding。
-    根据样本标签label_list将特征向量embedding划分到不同类。
-    对每个类计算特征向量的均值prototype。
-    将计算出的prototype作为新的fc权重,替换原来的fc.weight。
-这样做的效果是:
-    原来fc层的权重是随机初始化的。
-    替换为根据训练集特征计算出的类均值prototype。
-    新的fc权重更接近真实样本的特征分布。
-代替了随机初始化的权重。
-所以这段代码实现了用训练数据来更新fc层权重的效果,使新的fc权重更好地反映训练数据的特征分布,起到一个精炼原始随机权重的作用。
-是典型的用训练数据来更新模型权重的做法,在迁移学习等任务中很常见。
-'''
+# '''
+# 这段代码的主要作用是用训练集数据替换模型中fc层的权重,具体做法是:
+#     用训练集DataLoader批量提取所有训练数据的特征向量embedding。
+#     根据样本标签label_list将特征向量embedding划分到不同类。
+#     对每个类计算特征向量的均值prototype。
+#     将计算出的prototype作为新的fc权重,替换原来的fc.weight。
+# 这样做的效果是:
+#     原来fc层的权重是随机初始化的。
+#     替换为根据训练集特征计算出的类均值prototype。
+#     新的fc权重更接近真实样本的特征分布。
+# 代替了随机初始化的权重。
+# 所以这段代码实现了用训练数据来更新fc层权重的效果,使新的fc权重更好地反映训练数据的特征分布,起到一个精炼原始随机权重的作用。
+# 是典型的用训练数据来更新模型权重的做法,在迁移学习等任务中很常见。
+# '''
 def replace_base_fc(trainset, test_transform, data_transform, model, args):
     # replace fc.weight with the embedding average of train data
     model = model.eval()
