@@ -169,7 +169,7 @@ def replace_base_fc(trainset, test_transform, data_transform, model, args):
     model = model.eval()
 
     trainloader = torch.utils.data.DataLoader(dataset=trainset, batch_size=128,
-                                              num_workers=8, pin_memory=True, shuffle=False)
+                                              num_workers=2, pin_memory=True, shuffle=False)
     trainloader.dataset.transform = test_transform
     embedding_list = []
     label_list = []

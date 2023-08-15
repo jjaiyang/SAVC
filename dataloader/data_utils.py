@@ -157,9 +157,9 @@ def get_base_dataloader(args):
         testset = args.Dataset.MiniImageNet(root=args.dataroot, train=False, index=class_index)
 
     trainloader = torch.utils.data.DataLoader(dataset=trainset, batch_size=args.batch_size_base, shuffle=True,
-                                              num_workers=8, pin_memory=True)
+                                              num_workers=2, pin_memory=True)
     testloader = torch.utils.data.DataLoader(
-        dataset=testset, batch_size=args.test_batch_size, shuffle=False, num_workers=8, pin_memory=True)
+        dataset=testset, batch_size=args.test_batch_size, shuffle=False, num_workers=2, pin_memory=True)
 
     return trainset, trainloader, testloader
 
