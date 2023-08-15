@@ -15,6 +15,7 @@ def get_command_line_parser():
     parser.add_argument('-dataset', type=str, default='cub200',
                         choices=['mini_imagenet', 'cub200', 'cifar100'])
     parser.add_argument('-dataroot', type=str, default=DATA_DIR)
+    parser.add_argument('-root_pretrained', type=str, default=None)
 
     # about pre-training
     parser.add_argument('-epochs_base', type=int, default=150)
