@@ -129,7 +129,7 @@ class MYNET(nn.Module):
             if self.args.root_pretrained != None:
                 pretrained_model = timm.create_model('swin_tiny_patch4_window7_224.ms_in22k', num_classes=0,
                                                       pretrained=False)
-                pretrained_dict = torch.load('self.args.root_pretrained')
+                pretrained_dict = torch.load(self.args.root_pretrained)
                 pretrained_model.load_state_dict(pretrained_dict)
 
                 self.encoder_q.load_state_dict(pretrained_model.state_dict(), strict=False)
