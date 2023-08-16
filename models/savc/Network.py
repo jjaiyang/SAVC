@@ -103,6 +103,23 @@ class Text2Patches(nn.Module):
         return patches
 
 
+class ConvNeXt(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.encoder = timm.create_model('convnext_nano.in12k_ft_in1k', pretrained=True, features_only=True)
+        # Add new layers
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(640, num_classes)
+
+    def forward(self, x):
+        x = self.encoder(x)
+        x = x[3]
+        y = self.avgpool(x)
+        y = torch.flatten(y, 1)
+        y = self.fc(y)
+        return x, y
+
+
 class MYNET(nn.Module):
 
     def __init__(self, args, mode=None, trans=1):
@@ -125,8 +142,9 @@ class MYNET(nn.Module):
             self.num_features = 512
         if self.args.dataset == 'cub200':
             # self.encoder_q = resnet18(True, args, num_classes=self.args.moco_dim)
-            self.encoder_q = timm.create_model('convnext_nano.in12k_ft_in1k', pretrained=True, num_classes=self.args.moco_dim)
-            self.encoder_k = timm.create_model('convnext_nano.in12k_ft_in1k', pretrained=True, num_classes=self.args.moco_dim)# pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
+            self.encoder_q = ConvNeXt(num_classes=self.args.moco_dim)
+            self.encoder_k = ConvNeXt(num_classes=self.args.moco_dim)
+            # self.encoder_k = timm.create_model('convnext_nano.in12k_ft_in1k', pretrained=True, num_classes=self.args.moco_dim)# pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
             # self.encoder_q = resnet18(True, args, num_classes=self.args.moco_dim)
             # self.encoder_k = resnet18(True, args,
             #                           num_classes=self.args.moco_dim)  # pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
@@ -250,15 +268,13 @@ class MYNET(nn.Module):
     # '''
 
     def encode_q(self, x):
-        a = self.encoder_q.forward_features(x) # n, 640,7,7
-        b = self.encoder_q(x) #n, 128
+        a, b = self.encoder_q(x) #n, 128
         a = F.adaptive_avg_pool2d(a, 1)
         a = a.squeeze(-1).squeeze(-1)
         return a, b
 
     def encode_k(self, x):
-        a = self.encoder_k.forward_features(x)
-        b = self.encoder_k(x)
+        a, b = self.encoder_k(x)
         a = F.adaptive_avg_pool2d(a, 1)
         a = a.squeeze(-1).squeeze(-1)
         return a, b
