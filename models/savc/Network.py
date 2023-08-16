@@ -134,6 +134,7 @@ class MYNET(nn.Module):
 
                 self.encoder_q.load_state_dict(pretrained_model.state_dict(), strict=False)
                 self.encoder_k.load_state_dict(pretrained_model.state_dict(), strict=False)
+                print('pretrained backbone loaded')
 
             self.num_features = 768
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
@@ -320,8 +321,7 @@ class MYNET(nn.Module):
 
                 text_features = self.text_encoder(txt)
                 patches = self.text_to_patches(text_features)
-                txt_ft = self.forward_metric(patches)
-                # _, txt_ft = self.encode_q(patches)
+                _, txt_ft = self.encode_q(patches)
 
                 q = nn.functional.normalize(q, dim=1)  # 对q进行normalize
                 feat_dim = q.shape[-1]  # 图像向量维度
