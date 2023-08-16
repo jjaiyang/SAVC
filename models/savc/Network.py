@@ -231,8 +231,8 @@ class MYNET(nn.Module):
     # 所以同一个encoder可以接受不同尺寸的输入图像。
     # '''
     def encode_q(self, x):
-        a = self.encoder_q.forward_features(x).permute(0, 3, 1, 2) # torch.Size([1, 7, 7, 768]) 转成torch.Size([1, 768, 7, 7])
-        b = self.encoder_q(x)
+        a = self.encoder_q.forward_features(x).permute(0, 3, 1, 2) # torch.Size([1, 7, 7, 768]) 转成torch.Size([1, 768, 7, 7]) # 768
+        b = self.encoder_q(x) # 128
         a = F.adaptive_avg_pool2d(a, 1)
         a = a.squeeze(-1).squeeze(-1)
         return a, b
@@ -322,7 +322,8 @@ class MYNET(nn.Module):
                 text_features = self.text_encoder(txt)
                 patches = self.text_to_patches(text_features)
                 # _, txt_ft = self.encode_q(patches)
-                txt_ft = self.forward_metric(patches)
+                txt_ft,  _ = self.encode_q(patches)
+                # txt_ft = self.forward_metric(patches)
 
                 q = nn.functional.normalize(q, dim=1)  # 对q进行normalize
                 feat_dim = q.shape[-1]  # 图像向量维度
