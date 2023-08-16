@@ -38,39 +38,38 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
         返回loss和acc供后续使用。
     '''
     # 初始化Averager对象
-    tl = Averager() # 用于累加总损失并计算平均值。
-    tl_joint = Averager() # 用于累加joint loss并计算平均值。
-    tl_moco = Averager() # 用于累加moco总损失并计算平均值。
-    tl_moco_global = Averager() # 用于累加moco全局损失并计算平均值。
-    tl_moco_small = Averager() # 用于累加moco小尺寸损失并计算平均值。
-    ta = Averager() # 用于累加准确率并计算平均值。
+    tl = Averager()  # 用于累加总损失并计算平均值。
+    tl_joint = Averager()  # 用于累加joint loss并计算平均值。
+    tl_moco = Averager()  # 用于累加moco总损失并计算平均值。
+    tl_moco_global = Averager()  # 用于累加moco全局损失并计算平均值。
+    tl_moco_small = Averager()  # 用于累加moco小尺寸损失并计算平均值。
+    ta = Averager()  # 用于累加准确率并计算平均值。
     model = model.train()
-    tqdm_gen = tqdm(trainloader) # 使用tqdm包tqdm_gen获取dataloader的进度条迭代器,用于在训练时显示进度条。
+    tqdm_gen = tqdm(trainloader)  # 使用tqdm包tqdm_gen获取dataloader的进度条迭代器,用于在训练时显示进度条。
 
     # criterion_txt = nn.CrossEntropyLoss()
-    for i, batch in enumerate(tqdm_gen, 1): # 循环遍历dataloader,同时显示进度条。
-        data, single_labels = [_ for _ in batch] # 从batch中取出data和标签。
-        b, c, h, w = data[1].shape # 获取data[1]的shape信息。
-        original = data[0].cuda(non_blocking=True) # 将原始图片original加载到GPU。作用是用于分类
-        data[1] = data[1].cuda(non_blocking=True) # 将增强图片1加载到GPU。
-        data[2] = data[2].cuda(non_blocking=True) # 将增强图片2加载到GPU。
-        single_labels = single_labels.cuda(non_blocking=True) # 将标签加载到GPU。
-        if len(args.num_crops) > 1: # 如果使用了多crop策略:
-            data_small = data[args.num_crops[0]+1].unsqueeze(1) # 构建小尺寸裁剪图片data_small
+    for i, batch in enumerate(tqdm_gen, 1):  # 循环遍历dataloader,同时显示进度条。
+        data, single_labels = [_ for _ in batch]  # 从batch中取出data和标签。
+        b, c, h, w = data[1].shape  # 获取data[1]的shape信息。
+        original = data[0].cuda(non_blocking=True)  # 将原始图片original加载到GPU。作用是用于分类
+        data[1] = data[1].cuda(non_blocking=True)  # 将增强图片1加载到GPU。
+        data[2] = data[2].cuda(non_blocking=True)  # 将增强图片2加载到GPU。
+        single_labels = single_labels.cuda(non_blocking=True)  # 将标签加载到GPU。
+        if len(args.num_crops) > 1:  # 如果使用了多crop策略:
+            data_small = data[args.num_crops[0] + 1].unsqueeze(1)  # 构建小尺寸裁剪图片data_small
             for j in range(1, args.num_crops[1]):
-                data_small = torch.cat((data_small, data[j+args.num_crops[0]+1].unsqueeze(1)), dim=1)
-            data_small = data_small.view(-1, c, args.size_crops[1], args.size_crops[1]).cuda(non_blocking=True) # 调整shape为[b * num_small_crops, c, h, w],然后加载到GPU。
+                data_small = torch.cat((data_small, data[j + args.num_crops[0] + 1].unsqueeze(1)), dim=1)
+            data_small = data_small.view(-1, c, args.size_crops[1], args.size_crops[1]).cuda(
+                non_blocking=True)  # 调整shape为[b * num_small_crops, c, h, w],然后加载到GPU。
         else:
             data_small = None
-        
-        data_classify = transform(original)    
-        data_query = transform(data[1]) # 生成新的虚拟类
+
+        data_classify = transform(original)
+        data_query = transform(data[1])  # 生成新的虚拟类
         data_key = transform(data[2])
         data_small = transform(data_small)
         m = data_query.size()[0] // b
-        joint_labels = torch.stack([single_labels*m+ii for ii in range(m)], 1).view(-1)
-
-
+        joint_labels = torch.stack([single_labels * m + ii for ii in range(m)], 1).view(-1)
 
         if args.no_semantic:
             joint_preds, output_global, output_small, target_global, target_small = model(
@@ -95,7 +94,6 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
 
             # semantic_loss和joint_loss没经过同一个fc层
             loss = joint_loss + loss_moco
-
 
         else:
             # 加入文本编码器咯
@@ -155,7 +153,7 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
             loss = args.lamda * semantic_loss + (1 - args.lamda) * joint_loss + loss_moco
 
         total_loss = loss
-        
+
         acc = count_acc(agg_preds, single_labels)
 
         lrc = scheduler.get_last_lr()[0]
@@ -178,8 +176,6 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
     tl_moco_global = tl_moco_global.item()
     tl_moco_small = tl_moco_small.item()
     return tl, tl_joint, tl_moco, tl_moco_global, tl_moco_small, ta
-
-
 
 
 # '''
@@ -212,7 +208,7 @@ def replace_base_fc(trainset, test_transform, data_transform, model, args):
             b = data.size()[0]
             data = data_transform(data)
             m = data.size()[0] // b
-            labels = torch.stack([label*m+ii for ii in range(m)], 1).view(-1)
+            labels = torch.stack([label * m + ii for ii in range(m)], 1).view(-1)
             model.mode = 'encoder'
             embedding = model(data)
 
@@ -223,7 +219,7 @@ def replace_base_fc(trainset, test_transform, data_transform, model, args):
 
     proto_list = []
 
-    for class_index in range(args.base_class*m):
+    for class_index in range(args.base_class * m):
         data_index = (label_list == class_index).nonzero()
         embedding_this = embedding_list[data_index.squeeze(-1)]
         embedding_this = embedding_this.mean(0)
@@ -231,7 +227,7 @@ def replace_base_fc(trainset, test_transform, data_transform, model, args):
 
     proto_list = torch.stack(proto_list, dim=0)
 
-    model.fc.weight.data[:args.base_class*m] = proto_list
+    model.fc.weight.data[:args.base_class * m] = proto_list
 
     return model
 
@@ -240,30 +236,31 @@ def replace_base_fc(trainset, test_transform, data_transform, model, args):
 def update_fc_ft(trainloader, data_transform, model, m, session, args):
     # incremental finetuning
     old_class = args.base_class + args.way * (session - 1)
-    new_class = args.base_class + args.way * session 
+    new_class = args.base_class + args.way * session
     new_fc = nn.Parameter(
-        torch.rand(args.way*m, model.num_features, device="cuda"),
+        torch.rand(args.way * m, model.num_features, device="cuda"),
         requires_grad=True)
-    new_fc.data.copy_(model.fc.weight[old_class*m : new_class*m, :].data) # 定义新的线性分类层new_fc,其权重初始化为之前旧类的权重。这样可以加速新的类的训练,利用旧类的先验知识。更新的是predictor的参数用于分类
+    new_fc.data.copy_(model.fc.weight[old_class * m: new_class * m,
+                      :].data)  # 定义新的线性分类层new_fc,其权重初始化为之前旧类的权重。这样可以加速新的类的训练,利用旧类的先验知识。更新的是predictor的参数用于分类
     # 这个new_fc相当于fintuning阶段使用的predictor
 
     if args.dataset == 'mini_imagenet':
         optimizer = torch.optim.SGD([{'params': new_fc, 'lr': args.lr_new},
-                                     {'params': model.encoder_q.fc.parameters(), 'lr': 0.05*args.lr_new},
-                                     {'params': model.encoder_q.layer4.parameters(), 'lr': 0.001*args.lr_new},],
+                                     {'params': model.encoder_q.fc.parameters(), 'lr': 0.05 * args.lr_new},
+                                     {'params': model.encoder_q.layer4.parameters(), 'lr': 0.001 * args.lr_new}, ],
                                     momentum=0.9, dampening=0.9, weight_decay=0)
-        
-    if args.dataset == 'cub200': # 样本小所以只更新predictor，这很好理解
+
+    if args.dataset == 'cub200':  # 样本小所以只更新predictor，这很好理解
         optimizer = torch.optim.SGD([{'params': new_fc, 'lr': args.lr_new}],
-                                    momentum=0.9, dampening=0.9, weight_decay=0) # 可以尝试像imagenet的策略一样冻结
-        
+                                    momentum=0.9, dampening=0.9, weight_decay=0)  # 可以尝试像imagenet的策略一样冻结
+
     elif args.dataset == 'cifar100':
         optimizer = torch.optim.Adam([{'params': new_fc, 'lr': args.lr_new},
-                                      {'params': model.encoder_q.fc.parameters(), 'lr': 0.01*args.lr_new},
-                                      {'params': model.encoder_q.layer3.parameters(), 'lr':0.02*args.lr_new}],
-                                      weight_decay=0)
-        
-    criterion = SupContrastive().cuda() 
+                                      {'params': model.encoder_q.fc.parameters(), 'lr': 0.01 * args.lr_new},
+                                      {'params': model.encoder_q.layer3.parameters(), 'lr': 0.02 * args.lr_new}],
+                                     weight_decay=0)
+
+    criterion = SupContrastive().cuda()
 
     with torch.enable_grad():
         for epoch in range(args.epochs_new):
@@ -275,34 +272,39 @@ def update_fc_ft(trainloader, data_transform, model, m, session, args):
                 data[2] = data[2].cuda(non_blocking=True)
                 single_labels = single_labels.cuda(non_blocking=True)
                 if len(args.num_crops) > 1:
-                    data_small = data[args.num_crops[0]+1].unsqueeze(1)
+                    data_small = data[args.num_crops[0] + 1].unsqueeze(1)
                     for j in range(1, args.num_crops[1]):
-                        data_small = torch.cat((data_small, data[j+args.num_crops[0]+1].unsqueeze(1)), dim=1)
+                        data_small = torch.cat((data_small, data[j + args.num_crops[0] + 1].unsqueeze(1)), dim=1)
                     data_small = data_small.view(-1, c, args.size_crops[1], args.size_crops[1]).cuda(non_blocking=True)
                 else:
                     data_small = None
-            data_classify = data_transform(origin)    
+            data_classify = data_transform(origin)
             data_query = data_transform(data[1])
             data_key = data_transform(data[2])
             data_small = data_transform(data_small)
-            joint_labels = torch.stack([single_labels*m+ii for ii in range(m)], 1).view(-1)
-            
-            old_fc = model.fc.weight[:old_class*m, :].clone().detach()    
-            fc = torch.cat([old_fc, new_fc], dim=0) # 整合新旧fc在一起
+            joint_labels = torch.stack([single_labels * m + ii for ii in range(m)], 1).view(-1)
+
+            old_fc = model.fc.weight[:old_class * m, :].clone().detach()
+            fc = torch.cat([old_fc, new_fc], dim=0)  # 整合新旧fc在一起
             features, _ = model.encode_q(data_classify)
             features.detach()
-            logits = model.get_logits(features,fc) # 在所有已见类上计算logits用于分类crossentropy
+            logits = model.get_logits(features, fc)  # 在所有已见类上计算logits用于分类crossentropy
             joint_loss = F.cross_entropy(logits, joint_labels)
-            _, output_global, output_small, target_global, target_small = model(im_cla=data_classify, im_q=data_query, im_k=data_key, labels=joint_labels, im_q_small=data_small, base_sess=False, last_epochs_new=(epoch==args.epochs_new-1))
+            _, output_global, output_small, target_global, target_small = model(im_cla=data_classify, im_q=data_query,
+                                                                                im_k=data_key, labels=joint_labels,
+                                                                                im_q_small=data_small, base_sess=False,
+                                                                                last_epochs_new=(
+                                                                                            epoch == args.epochs_new - 1))
             loss_moco_global = criterion(output_global, target_global)
             loss_moco_small = criterion(output_small, target_small)
-            loss_moco = args.alpha * loss_moco_global + args.beta * loss_moco_small 
-            loss = joint_loss + loss_moco         
+            loss_moco = args.alpha * loss_moco_global + args.beta * loss_moco_small
+            loss = joint_loss + loss_moco
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-    model.fc.weight.data[old_class*m : new_class*m, :].copy_(new_fc.data) # 更新这一轮得到的新的权重为下一轮旧的全fc权重了
+    model.fc.weight.data[old_class * m: new_class * m, :].copy_(new_fc.data)  # 更新这一轮得到的新的权重为下一轮旧的全fc权重了
+
 
 def test(model, testloader, epoch, transform, args, session):
     test_class = args.base_class + session * args.way
@@ -317,13 +319,13 @@ def test(model, testloader, epoch, transform, args, session):
             data = transform(data)
             m = data.size()[0] // b
             joint_preds = model(data)
-            joint_preds = joint_preds[:, :test_class*m]
-            
+            joint_preds = joint_preds[:, :test_class * m]
+
             agg_preds = 0
             # 对各个变换结果聚合预测真实标签
             for j in range(m):
                 agg_preds = agg_preds + joint_preds[j::m, j::m] / m
-            
+
             loss = F.cross_entropy(agg_preds, test_label)
             acc = count_acc(agg_preds, test_label)
 
@@ -334,4 +336,4 @@ def test(model, testloader, epoch, transform, args, session):
         va = va.item()
     print('epo {}, test, loss={:.4f} acc={:.4f}'.format(epoch, vl, va))
 
-    return vl,va
+    return vl, va
