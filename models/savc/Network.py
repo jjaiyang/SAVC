@@ -250,18 +250,18 @@ class MYNET(nn.Module):
     # '''
 
     def encode_q(self, x):
-        x = self.encoder_q.forward_features(x)
-        y = self.encoder_q(x)
-        x = F.adaptive_avg_pool2d(x, 1)
-        x = x.squeeze(-1).squeeze(-1)
-        return x, y
+        a = self.encoder_q.forward_features(x) # n, 640,7,7
+        b = self.encoder_q(x) #n, 128
+        a = F.adaptive_avg_pool2d(a, 1)
+        a = a.squeeze(-1).squeeze(-1)
+        return a, b
 
     def encode_k(self, x):
-        x = self.encoder_k.forward_features(x)
-        y = self.encoder_k(x)
-        x = F.adaptive_avg_pool2d(x, 1)
-        x = x.squeeze(-1).squeeze(-1)
-        return x, y
+        a = self.encoder_k.forward_features(x)
+        b = self.encoder_k(x)
+        a = F.adaptive_avg_pool2d(a, 1)
+        a = a.squeeze(-1).squeeze(-1)
+        return a, b
 
     # def encode_q(self, x):
     #     a = self.encoder_q.forward_features(x).permute(0, 3, 1, 2) # torch.Size([1, 7, 7, 768]) 转成torch.Size([1, 768, 7, 7]) # 768
@@ -349,8 +349,7 @@ class MYNET(nn.Module):
             #                 return logits_classify, logits_global, logits_small, targets_global, targets_small
             else:
                 b = im_q.shape[0]  # get batch size
-                logits_classify = self.forward_metric(
-                    im_cla)  # 计算classify logits logits_classify是分类分支输出的logits,会经过softmax和交叉熵损失,进行分类任务的监督训练。
+                logits_classify = self.forward_metric(im_cla)  # 计算classify logits logits_classify是分类分支输出的logits,会经过softmax和交叉熵损失,进行分类任务的监督训练。
                 _, q = self.encode_q(im_q)  # 获得query特征q
 
                 text_features = self.text_encoder(txt)
@@ -426,8 +425,7 @@ class MYNET(nn.Module):
                 return x
             else:
                 b = im_q.shape[0]  # get batch size
-                logits_classify = self.forward_metric(
-                    im_cla)  # 计算classify logits logits_classify是分类分支输出的logits,会经过softmax和交叉熵损失,进行分类任务的监督训练。
+                logits_classify = self.forward_metric(im_cla)  # 计算classify logits logits_classify是分类分支输出的logits,会经过softmax和交叉熵损失,进行分类任务的监督训练。
                 _, q = self.encode_q(im_q)  # 获得query特征q
 
                 q = nn.functional.normalize(q, dim=1)  # 对q进行normalize，因为后面直接拿去supcontrastive loss中算内积了
