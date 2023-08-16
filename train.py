@@ -55,6 +55,13 @@ def get_command_line_parser():
                         help='softmax temperature (default: 0.07)')
     parser.add_argument('-mlp', action='store_true',
                         help='use mlp head')
+
+    parser.add_argument('-pre', action='store_true',
+                        help='use pretrained backbone')
+
+    parser.add_argument('-no_semantic', action='store_true',
+                        help='use pretrained backbone')
+
     parser.add_argument("-num_crops", type=int, default=[2, 4], nargs="+",
                         help="amount of crops")
     parser.add_argument("-size_crops", type=int, default=[224, 96], nargs="+",
