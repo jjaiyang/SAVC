@@ -123,8 +123,10 @@ class MYNET(nn.Module):
             self.num_features = 512
         if self.args.dataset == 'cub200':
             # self.encoder_q = resnet18(True, args, num_classes=self.args.moco_dim)
-            self.encoder_q = timm.create_model('swin_tiny_patch4_window7_224.ms_in22k_ft_in1k', pretrained=True, num_classes=self.args.moco_dim).cuda()
-            self.encoder_k = timm.create_model('swin_tiny_patch4_window7_224.ms_in22k_ft_in1k', pretrained=True, num_classes=self.args.moco_dim).cuda()# pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
+            # self.encoder_q = timm.create_model('swin_tiny_patch4_window7_224.ms_in22k_ft_in1k', pretrained=True, num_classes=self.args.moco_dim).cuda()
+            # self.encoder_k = timm.create_model('swin_tiny_patch4_window7_224.ms_in22k_ft_in1k', pretrained=True, num_classes=self.args.moco_dim).cuda()# pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
+            self.encoder_q = resnet18(True, args, num_classes=self.args.moco_dim)
+            self.encoder_k = resnet18(True, args, num_classes=self.args.moco_dim)# pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
             # self.encoder_k = resnet18(True, args, num_classes=self.args.moco_dim)# pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
             if self.args.root_pretrained != None:
                 pretrained_model = timm.create_model('swin_tiny_patch4_window7_224.ms_in22k', num_classes=0,
@@ -144,7 +146,7 @@ class MYNET(nn.Module):
                 self.encoder_k.layers[1].requires_grad = False
                 self.encoder_k.layers[2].requires_grad = False
 
-            self.num_features = 768
+            self.num_features = 512
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         # '''
@@ -153,24 +155,27 @@ class MYNET(nn.Module):
         # '''
 
         self.fc = nn.Linear(self.num_features, self.args.num_classes*trans, bias=False)
-        # self.fc = nn.Sequential(
-        #     nn.Linear(self.num_features, 3 * self.num_features, bias=False),
-        #     nn.Linear(3 * self.num_features, self.num_features, bias=False),
-        #     nn.Linear(self.num_features, self.args.num_classes * trans, bias=False)
-        # )
 
         self.K = self.args.moco_k
         self.m = self.args.moco_m
         self.T = self.args.moco_t
         
         if self.args.mlp:  # hack: brute-force replacement
-            self.encoder_q.head.fc = nn.Sequential(
+            # self.encoder_q.head.fc = nn.Sequential(
+            #     nn.Linear(self.num_features, self.num_features * self.args.hidden_multi), nn.ReLU(),
+            #     nn.Linear(self.num_features * self.args.hidden_multi, self.num_features), self.encoder_q.head.fc
+            # )
+            # self.encoder_k.head.fc = nn.Sequential(
+            #     nn.Linear(self.num_features, self.num_features * self.args.hidden_multi), nn.ReLU(),
+            #     nn.Linear(self.num_features * self.args.hidden_multi, self.num_features), self.encoder_k.head.fc
+            # )
+            self.encoder_q.fc = nn.Sequential(
                 nn.Linear(self.num_features, self.num_features * self.args.hidden_multi), nn.ReLU(),
-                nn.Linear(self.num_features * self.args.hidden_multi, self.num_features), self.encoder_q.head.fc
+                nn.Linear(self.num_features * self.args.hidden_multi, self.num_features), self.encoder_q.fc
             )
-            self.encoder_k.head.fc = nn.Sequential(
+            self.encoder_k.fc = nn.Sequential(
                 nn.Linear(self.num_features, self.num_features * self.args.hidden_multi), nn.ReLU(),
-                nn.Linear(self.num_features * self.args.hidden_multi, self.num_features), self.encoder_k.head.fc
+                nn.Linear(self.num_features * self.args.hidden_multi, self.num_features), self.encoder_k.fc
             )
 
         for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
@@ -199,8 +204,8 @@ class MYNET(nn.Module):
                 param_k.data = param_k.data * self.m + param_q.data * (1. - self.m)
         else:
             for k, v in self.encoder_q.named_parameters():
-                # if k.startswith('fc') or k.startswith('layer4') or k.startswith('layer3'):
-                if k.startswith('head.fc') or k.startswith('layers.3'): # 冻结了stage0~2
+                if k.startswith('fc') or k.startswith('layer4') or k.startswith('layer3'):
+                # if k.startswith('head.fc') or k.startswith('layers[3]'): # 冻结了stage0~2
                     self.encoder_k.state_dict()[k].data = self.encoder_k.state_dict()[k].data * self.m + v.data * (1. - self.m)
                     
     @torch.no_grad()
@@ -238,19 +243,32 @@ class MYNET(nn.Module):
     # 输出的x都被Pool到同样的1x1尺寸,相当于一个固定长度的特征向量。
     # 所以同一个encoder可以接受不同尺寸的输入图像。
     # '''
+
     def encode_q(self, x):
-        a = self.encoder_q.forward_features(x).permute(0, 3, 1, 2) # torch.Size([1, 7, 7, 768]) 转成torch.Size([1, 768, 7, 7]) # 768
-        b = self.encoder_q(x) # 128
-        a = F.adaptive_avg_pool2d(a, 1)
-        a = a.squeeze(-1).squeeze(-1)
-        return a, b
-    
+        x, y = self.encoder_q(x)
+        x = F.adaptive_avg_pool2d(x, 1)
+        x = x.squeeze(-1).squeeze(-1)
+        return x, y
+
     def encode_k(self, x):
-        a = self.encoder_k.forward_features(x).permute(0, 3, 1, 2) # torch.Size([1, 7, 7, 768]) 转成torch.Size([1, 768, 7, 7])
-        b = self.encoder_k(x)
-        a = F.adaptive_avg_pool2d(a, 1)
-        a = a.squeeze(-1).squeeze(-1)
-        return a, b # torch.Size([n, 768, 7, 7]) torch.Size([n, 128])
+        x, y = self.encoder_k(x)
+        x = F.adaptive_avg_pool2d(x, 1)
+        x = x.squeeze(-1).squeeze(-1)
+        return x, y
+
+    # def encode_q(self, x):
+    #     a = self.encoder_q.forward_features(x).permute(0, 3, 1, 2) # torch.Size([1, 7, 7, 768]) 转成torch.Size([1, 768, 7, 7]) # 768
+    #     b = self.encoder_q(x) # 128
+    #     a = F.adaptive_avg_pool2d(a, 1)
+    #     a = a.squeeze(-1).squeeze(-1)
+    #     return a, b
+    #
+    # def encode_k(self, x):
+    #     a = self.encoder_k.forward_features(x).permute(0, 3, 1, 2) # torch.Size([1, 7, 7, 768]) 转成torch.Size([1, 768, 7, 7])
+    #     b = self.encoder_k(x)
+    #     a = F.adaptive_avg_pool2d(a, 1)
+    #     a = a.squeeze(-1).squeeze(-1)
+    #     return a, b # torch.Size([n, 768, 7, 7]) torch.Size([n, 128])
 
     # '''
     # im_cla是不经过变换的原始图像,用于分类预测,计算classify logits。
@@ -395,17 +413,17 @@ class MYNET(nn.Module):
                 return x
             else:
                 b = im_q.shape[0]  # get batch size
-                logits_classify = self.forward_metric(
-                    im_cla)  # 计算classify logits logits_classify是分类分支输出的logits,会经过softmax和交叉熵损失,进行分类任务的监督训练。
+                logits_classify = self.forward_metric(im_cla)  # 计算classify logits logits_classify是分类分支输出的logits,会经过softmax和交叉熵损失,进行分类任务的监督训练。
                 _, q = self.encode_q(im_q)  # 获得query特征q
+
                 q = nn.functional.normalize(q, dim=1)  # 对q进行normalize，因为后面直接拿去supcontrastive loss中算内积了
-                # 看看选哪样的q合适
                 feat_dim = q.shape[-1]  # 图像向量维度
                 q = q.unsqueeze(1)  # bs x 1 x dim
 
                 if im_q_small is not None:
-                    im_q_small_resized = self.transform_small(im_q_small)
-                    _, q_small = self.encode_q(im_q_small_resized)  # 计算small query特征q_small
+                    # im_q_small_resized = self.transform_small(im_q_small)
+                    # _, q_small = self.encode_q(im_q_small_resized)  # 计算small query特征q_small
+                    _, q_small = self.encode_q(im_q_small)  # 计算small query特征q_small
                     q_small = q_small.view(b, -1, feat_dim)  # bs x 4 x dim 调整shape 可能是裁剪出了四个small crop图像（num_crops）
                     q_small = nn.functional.normalize(q_small, dim=-1)
 
@@ -419,8 +437,7 @@ class MYNET(nn.Module):
                 # Einstein sum is more intuitive
                 # positive logits: Nx1
                 q_global = q
-                l_pos_global = (q_global * k.unsqueeze(1)).sum(2).view(-1,
-                                                                       1)  # 计算q_global和k的点积,再求和压缩为一个数,view成[batch_size, 1]的SHAPE,得到全局图像的positive logits l_pos_global
+                l_pos_global = (q_global * k.unsqueeze(1)).sum(2).view(-1, 1)  # 计算q_global和k的点积,再求和压缩为一个数,view成[batch_size, 1]的SHAPE,得到全局图像的positive logits l_pos_global
                 l_pos_small = (q_small * k.unsqueeze(1)).sum(2).view(-1, 1)
 
                 # negative logits: NxK

@@ -71,7 +71,6 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
         joint_labels = torch.stack([single_labels*m+ii for ii in range(m)], 1).view(-1)
 
 
-
         if args.no_semantic:
             joint_preds, output_global, output_small, target_global, target_small = model(
                 im_cla=data_classify,
@@ -95,7 +94,6 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
 
             # semantic_loss和joint_loss没经过同一个fc层
             loss = joint_loss + loss_moco
-
 
         else:
             # 加入文本编码器咯
