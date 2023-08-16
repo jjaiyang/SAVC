@@ -125,14 +125,12 @@ class MYNET(nn.Module):
             self.num_features = 512
         if self.args.dataset == 'cub200':
             # self.encoder_q = resnet18(True, args, num_classes=self.args.moco_dim)
-            # self.encoder_q = timm.create_model('swin_tiny_patch4_window7_224.ms_in22k_ft_in1k', pretrained=True, num_classes=self.args.moco_dim).cuda()
-            # self.encoder_k = timm.create_model('swin_tiny_patch4_window7_224.ms_in22k_ft_in1k', pretrained=True, num_classes=self.args.moco_dim).cuda()# pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
-            self.encoder_q = resnet18(True, args, num_classes=self.args.moco_dim)
-            self.encoder_k = resnet18(True, args,
-                                      num_classes=self.args.moco_dim)  # pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
+            self.encoder_q = timm.create_model('convnext_nano.in12k_ft_in1k', pretrained=True, num_classes=self.args.moco_dim)
+            self.encoder_k = timm.create_model('convnext_nano.in12k_ft_in1k', pretrained=True, num_classes=self.args.moco_dim)# pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
+            # self.encoder_q = resnet18(True, args, num_classes=self.args.moco_dim)
+            # self.encoder_k = resnet18(True, args,
+            #                           num_classes=self.args.moco_dim)  # pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
             # self.encoder_k = resnet18(True, args, num_classes=self.args.moco_dim)# pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
-
-
 
             if self.args.root_pretrained != None:
                 pretrained_model = timm.create_model('swin_tiny_patch4_window7_224.ms_in22k', num_classes=0,
@@ -152,7 +150,7 @@ class MYNET(nn.Module):
                 self.encoder_k.layers[1].requires_grad = False
                 self.encoder_k.layers[2].requires_grad = False
 
-            self.num_features = 512
+            self.num_features = 640
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         # '''
@@ -210,7 +208,7 @@ class MYNET(nn.Module):
                 param_k.data = param_k.data * self.m + param_q.data * (1. - self.m)
         else:
             for k, v in self.encoder_q.named_parameters():
-                if k.startswith('fc') or k.startswith('layer4') or k.startswith('layer3'):
+                if k.startswith('head.fc') or k.startswith('stages[2]'):# or k.startswith('layer3'):
                     # if k.startswith('head.fc') or k.startswith('layers[3]'): # 冻结了stage0~2
                     self.encoder_k.state_dict()[k].data = self.encoder_k.state_dict()[k].data * self.m + v.data * (
                                 1. - self.m)
@@ -252,13 +250,15 @@ class MYNET(nn.Module):
     # '''
 
     def encode_q(self, x):
-        x, y = self.encoder_q(x)
+        x = self.encoder_q.forward_features(x)
+        y = self.encoder_q(x)
         x = F.adaptive_avg_pool2d(x, 1)
         x = x.squeeze(-1).squeeze(-1)
         return x, y
 
     def encode_k(self, x):
-        x, y = self.encoder_k(x)
+        x = self.encoder_k.forward_features(x)
+        y = self.encoder_k(x)
         x = F.adaptive_avg_pool2d(x, 1)
         x = x.squeeze(-1).squeeze(-1)
         return x, y
