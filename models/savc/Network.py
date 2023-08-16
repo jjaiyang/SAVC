@@ -191,13 +191,11 @@ class MYNET(nn.Module):
             #     nn.Linear(self.num_features, self.num_features * self.args.hidden_multi), nn.ReLU(),
             #     nn.Linear(self.num_features * self.args.hidden_multi, self.num_features), self.encoder_k.head.fc
             # )
-            self.encoder_q.head.fc = nn.Sequential(
-                nn.Linear(self.num_features, self.num_features * self.args.hidden_multi), nn.ReLU(),
-                nn.Linear(self.num_features * self.args.hidden_multi, self.num_features), self.encoder_q.head.fc
+            self.encoder_q.fc = nn.Sequential(
+                nn.Linear(self.num_features, self.num_features), nn.ReLU(), self.encoder_q.fc
             )
-            self.encoder_k.head.fc = nn.Sequential(
-                nn.Linear(self.num_features, self.num_features * self.args.hidden_multi), nn.ReLU(),
-                nn.Linear(self.num_features * self.args.hidden_multi, self.num_features), self.encoder_k.head.fc
+            self.encoder_k.fc = nn.Sequential(
+                nn.Linear(self.num_features, self.num_features), nn.ReLU(), self.encoder_k.fc
             )
 
         for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
@@ -226,7 +224,7 @@ class MYNET(nn.Module):
                 param_k.data = param_k.data * self.m + param_q.data * (1. - self.m)
         else:
             for k, v in self.encoder_q.named_parameters():
-                if k.startswith('head.fc') or k.startswith('stages[2]'):# or k.startswith('layer3'):
+                if k.startswith('fc') or k.startswith('encoder.stages_3'):# or k.startswith('layer3'):
                     # if k.startswith('head.fc') or k.startswith('layers[3]'): # 冻结了stage0~2
                     self.encoder_k.state_dict()[k].data = self.encoder_k.state_dict()[k].data * self.m + v.data * (
                                 1. - self.m)
