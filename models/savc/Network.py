@@ -125,8 +125,8 @@ class MYNET(nn.Module):
             # self.encoder_q = resnet18(True, args, num_classes=self.args.moco_dim)
             # self.encoder_q = timm.create_model('swin_tiny_patch4_window7_224.ms_in22k_ft_in1k', pretrained=True, num_classes=self.args.moco_dim).cuda()
             # self.encoder_k = timm.create_model('swin_tiny_patch4_window7_224.ms_in22k_ft_in1k', pretrained=True, num_classes=self.args.moco_dim).cuda()# pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
-            self.encoder_q = resnet18(True, args, num_classes=self.args.moco_dim)
-            self.encoder_k = resnet18(True, args, num_classes=self.args.moco_dim)# pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
+            self.encoder_q = resnet34(True, args, num_classes=self.args.moco_dim)
+            self.encoder_k = resnet34(True, args, num_classes=self.args.moco_dim)# pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
             # self.encoder_k = resnet18(True, args, num_classes=self.args.moco_dim)# pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
             if self.args.root_pretrained != None:
                 pretrained_model = timm.create_model('swin_tiny_patch4_window7_224.ms_in22k', num_classes=0,
