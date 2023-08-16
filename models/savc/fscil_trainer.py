@@ -79,13 +79,11 @@ class FSCILTrainer(Trainer):
                 optimizer, scheduler = self.get_optimizer_base()
                 criterion = SupContrastive()
                 criterion = criterion.cuda()
-
-                criterion_txt = nn.CrossEntropyLoss().cuda()
                 
                 for epoch in range(args.epochs_base):
                     start_time = time.time()
                     # train base sess
-                    tl, tl_joint, tl_moco, tl_moco_global, tl_moco_small, ta = base_train(self.model, trainloader, criterion, criterion_txt, optimizer, scheduler, epoch, self.transform, args)
+                    tl, tl_joint, tl_moco, tl_moco_global, tl_moco_small, ta = base_train(self.model, trainloader, criterion, optimizer, scheduler, epoch, self.transform, args)
                     # test model with all seen class
                     tsl, tsa = test(self.model, testloader, epoch, self.transform, args, session)
 
