@@ -71,86 +71,86 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
         joint_labels = torch.stack([single_labels*m+ii for ii in range(m)], 1).view(-1)
 
 
-        if args.no_semantic:
-            joint_preds, output_global, output_small, target_global, target_small = model(
-                im_cla=data_classify,
-                im_q=data_query, im_k=data_key,
-                labels=joint_labels,
-                im_q_small=data_small)
-            # print(joint_labels, encoded_text_features)
-            # print(encoded_text_features.shape, joint_labels.shape)
+        # if args.no_semantic:
+        joint_preds, output_global, output_small, target_global, target_small = model(
+            im_cla=data_classify,
+            im_q=data_query, im_k=data_key,
+            labels=joint_labels,
+            im_q_small=data_small)
+        # print(joint_labels, encoded_text_features)
+        # print(encoded_text_features.shape, joint_labels.shape)
 
-            # joint_preds, output_global, output_small, target_global, target_small = model(im_cla=data_classify, im_q=data_query, im_k=data_key, labels=joint_labels, im_q_small=data_small)
-            loss_moco_global = criterion(output_global, target_global)
-            loss_moco_small = criterion(output_small, target_small)
-            loss_moco = args.alpha * loss_moco_global + args.beta * loss_moco_small
+        # joint_preds, output_global, output_small, target_global, target_small = model(im_cla=data_classify, im_q=data_query, im_k=data_key, labels=joint_labels, im_q_small=data_small)
+        loss_moco_global = criterion(output_global, target_global)
+        loss_moco_small = criterion(output_small, target_small)
+        loss_moco = args.alpha * loss_moco_global + args.beta * loss_moco_small
 
-            joint_preds = joint_preds[:, :args.base_class * m]  # model的分类头self.fc默认是输出num_classes个预测的,不仅仅是base_class类。
-            joint_loss = F.cross_entropy(joint_preds, joint_labels)
+        joint_preds = joint_preds[:, :args.base_class * m]  # model的分类头self.fc默认是输出num_classes个预测的,不仅仅是base_class类。
+        joint_loss = F.cross_entropy(joint_preds, joint_labels)
 
-            agg_preds = 0
-            for i in range(m):
-                agg_preds = agg_preds + joint_preds[i::m, i::m] / m
+        agg_preds = 0
+        for i in range(m):
+            agg_preds = agg_preds + joint_preds[i::m, i::m] / m
 
-            # semantic_loss和joint_loss没经过同一个fc层
-            loss = joint_loss + loss_moco
+        # semantic_loss和joint_loss没经过同一个fc层
+        loss = joint_loss + loss_moco
 
-        else:
-            # 加入文本编码器咯
-            if args.fantasy == 'rotation2':
-                # 定义通过类别序列生成语义信息
-                classes_file = '/kaggle/input/data-file-for-svtc/data/CUB_200_2011/classes.txt'
-                # 从类别文本文件中加载类别id到名称的映射
-                with open(classes_file) as f:
-                    classes_txt = f.read()
-
-                classes = {}
-                for line in classes_txt.split('\n'):
-                    if line.strip() == '':
-                        continue
-                    label, name = line.split(' ')
-                    classes[int(label) - 1] = name.split('.', 1)[-1].replace('_', ' ')
-
-            # "A photo about dolphins." "A photo sourced from dolphins." "A 190 degree rotated photo about dolphins."
-            semantic_text = []
-            for i in range(len(joint_labels)):
-                if i % 2 == 0:
-                    label_index = joint_labels[i].item() // m
-                    classname = classes[label_index]
-                    text = f'A image about {classname}'
-                else:
-                    label_index = (joint_labels[i].item() - 1) // m
-                    classname = classes[label_index]
-                    text = f'A 190 degree rotated image about {classname}'
-                semantic_text.append(text)
-            # print(semantic_text)
-
-            # 如果不使用文本信息则修改下面这两行
-            model.mode = 'semantic'
-            joint_preds, output_global, output_small, target_global, target_small, encoded_text_features = model(
-                im_cla=data_classify,
-                im_q=data_query, im_k=data_key,
-                labels=joint_labels,
-                im_q_small=data_small, txt=semantic_text)
-            # print(joint_labels, encoded_text_features)
-            # print(encoded_text_features.shape, joint_labels.shape)
-
-            semantic_loss = F.cross_entropy(encoded_text_features, joint_labels)
-
-            # joint_preds, output_global, output_small, target_global, target_small = model(im_cla=data_classify, im_q=data_query, im_k=data_key, labels=joint_labels, im_q_small=data_small)
-            loss_moco_global = criterion(output_global, target_global)
-            loss_moco_small = criterion(output_small, target_small)
-            loss_moco = args.alpha * loss_moco_global + args.beta * loss_moco_small
-
-            joint_preds = joint_preds[:, :args.base_class * m]  # model的分类头self.fc默认是输出num_classes个预测的,不仅仅是base_class类。
-            joint_loss = F.cross_entropy(joint_preds, joint_labels)
-
-            agg_preds = 0
-            for i in range(m):
-                agg_preds = agg_preds + joint_preds[i::m, i::m] / m
-
-            # semantic_loss和joint_loss没经过同一个fc层
-            loss = args.lamda * semantic_loss + (1 - args.lamda) * joint_loss + loss_moco
+        # else:
+        #     # 加入文本编码器咯
+        #     if args.fantasy == 'rotation2':
+        #         # 定义通过类别序列生成语义信息
+        #         classes_file = '/kaggle/input/data-file-for-svtc/data/CUB_200_2011/classes.txt'
+        #         # 从类别文本文件中加载类别id到名称的映射
+        #         with open(classes_file) as f:
+        #             classes_txt = f.read()
+        #
+        #         classes = {}
+        #         for line in classes_txt.split('\n'):
+        #             if line.strip() == '':
+        #                 continue
+        #             label, name = line.split(' ')
+        #             classes[int(label) - 1] = name.split('.', 1)[-1].replace('_', ' ')
+        #
+        #     # "A photo about dolphins." "A photo sourced from dolphins." "A 190 degree rotated photo about dolphins."
+        #     semantic_text = []
+        #     for i in range(len(joint_labels)):
+        #         if i % 2 == 0:
+        #             label_index = joint_labels[i].item() // m
+        #             classname = classes[label_index]
+        #             text = f'A image about {classname}'
+        #         else:
+        #             label_index = (joint_labels[i].item() - 1) // m
+        #             classname = classes[label_index]
+        #             text = f'A 190 degree rotated image about {classname}'
+        #         semantic_text.append(text)
+        #     # print(semantic_text)
+        #
+        #     # 如果不使用文本信息则修改下面这两行
+        #     model.mode = 'semantic'
+        #     joint_preds, output_global, output_small, target_global, target_small, encoded_text_features = model(
+        #         im_cla=data_classify,
+        #         im_q=data_query, im_k=data_key,
+        #         labels=joint_labels,
+        #         im_q_small=data_small, txt=semantic_text)
+        #     # print(joint_labels, encoded_text_features)
+        #     # print(encoded_text_features.shape, joint_labels.shape)
+        #
+        #     semantic_loss = F.cross_entropy(encoded_text_features, joint_labels)
+        #
+        #     # joint_preds, output_global, output_small, target_global, target_small = model(im_cla=data_classify, im_q=data_query, im_k=data_key, labels=joint_labels, im_q_small=data_small)
+        #     loss_moco_global = criterion(output_global, target_global)
+        #     loss_moco_small = criterion(output_small, target_small)
+        #     loss_moco = args.alpha * loss_moco_global + args.beta * loss_moco_small
+        #
+        #     joint_preds = joint_preds[:, :args.base_class * m]  # model的分类头self.fc默认是输出num_classes个预测的,不仅仅是base_class类。
+        #     joint_loss = F.cross_entropy(joint_preds, joint_labels)
+        #
+        #     agg_preds = 0
+        #     for i in range(m):
+        #         agg_preds = agg_preds + joint_preds[i::m, i::m] / m
+        #
+        #     # semantic_loss和joint_loss没经过同一个fc层
+        #     loss = args.lamda * semantic_loss + (1 - args.lamda) * joint_loss + loss_moco
 
         total_loss = loss
         
@@ -290,12 +290,63 @@ def update_fc_ft(trainloader, data_transform, model, m, session, args):
             features, _ = model.encode_q(data_classify)
             features.detach()
             logits = model.get_logits(features,fc) # 在所有已见类上计算logits用于分类crossentropy
-            joint_loss = F.cross_entropy(logits, joint_labels)
-            _, output_global, output_small, target_global, target_small = model(im_cla=data_classify, im_q=data_query, im_k=data_key, labels=joint_labels, im_q_small=data_small, base_sess=False, last_epochs_new=(epoch==args.epochs_new-1))
-            loss_moco_global = criterion(output_global, target_global)
-            loss_moco_small = criterion(output_small, target_small)
-            loss_moco = args.alpha * loss_moco_global + args.beta * loss_moco_small 
-            loss = joint_loss + loss_moco         
+
+            if args.no_semantic:
+                joint_loss = F.cross_entropy(logits, joint_labels)
+                _, output_global, output_small, target_global, target_small = model(im_cla=data_classify, im_q=data_query, im_k=data_key, labels=joint_labels, im_q_small=data_small, base_sess=False, last_epochs_new=(epoch==args.epochs_new-1))
+                loss_moco_global = criterion(output_global, target_global)
+                loss_moco_small = criterion(output_small, target_small)
+                loss_moco = args.alpha * loss_moco_global + args.beta * loss_moco_small
+                loss = joint_loss + loss_moco
+
+            else:
+                # 加入文本编码器咯
+                if args.fantasy == 'rotation2':
+                    # 定义通过类别序列生成语义信息
+                    classes_file = '/kaggle/input/data-file-for-svtc/data/CUB_200_2011/classes.txt'
+                    # 从类别文本文件中加载类别id到名称的映射
+                    with open(classes_file) as f:
+                        classes_txt = f.read()
+
+                    classes = {}
+                    for line in classes_txt.split('\n'):
+                        if line.strip() == '':
+                            continue
+                        label, name = line.split(' ')
+                        classes[int(label) - 1] = name.split('.', 1)[-1].replace('_', ' ')
+
+                # "A photo about dolphins." "A photo sourced from dolphins." "A 190 degree rotated photo about dolphins."
+                semantic_text = []
+                for i in range(len(joint_labels)):
+                    if i % 2 == 0:
+                        label_index = joint_labels[i].item() // m
+                        classname = classes[label_index]
+                        text = f'A image about {classname}'
+                    else:
+                        label_index = (joint_labels[i].item() - 1) // m
+                        classname = classes[label_index]
+                        text = f'A 190 degree rotated image about {classname}'
+                    semantic_text.append(text)
+                # print(semantic_text)
+                joint_loss = F.cross_entropy(logits, joint_labels)
+
+                # 如果不使用文本信息则修改下面这两行
+                model.mode = 'semantic'
+                _, output_global, output_small, target_global, target_small, encoded_text_features = model(
+                    im_cla=data_classify,
+                    im_q=data_query, im_k=data_key,
+                    labels=joint_labels,
+                    im_q_small=data_small, txt=semantic_text)
+                semantic_loss = F.cross_entropy(encoded_text_features, joint_labels)
+                # print(joint_labels, encoded_text_features)
+                # print(encoded_text_features.shape, joint_labels.shape)
+                loss_moco_global = criterion(output_global, target_global)
+                loss_moco_small = criterion(output_small, target_small)
+                loss_moco = args.alpha * loss_moco_global + args.beta * loss_moco_small
+
+                loss = args.lamda * semantic_loss + (1 - args.lamda) * joint_loss + loss_moco
+
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
