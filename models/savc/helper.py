@@ -106,7 +106,7 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
                                                                                      labels=joint_labels,
                                                                                      im_q_small=data_small, txt=semantic_text)
         # print(joint_labels, encoded_text_features)
-        print(encoded_text_features.shape, joint_labels.shape)
+        print(encoded_text_features, encoded_text_features.shape, joint_labels.shape)
 
         semantic_loss = F.cross_entropy(encoded_text_features, joint_labels)
 
