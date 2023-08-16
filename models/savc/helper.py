@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from losses import SupContrastive
 
 
-def base_train(model, trainloader, criterion, criterion_txt, optimizer, scheduler, epoch, transform, args):
+def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, transform, args):
     '''
     数据准备:
         batch中包含原图original,两个增强视图data[1], data[2]。
@@ -106,8 +106,9 @@ def base_train(model, trainloader, criterion, criterion_txt, optimizer, schedule
                                                                                      labels=joint_labels,
                                                                                      im_q_small=data_small, txt=semantic_text)
         # print(joint_labels, encoded_text_features)
+        print(encoded_text_features.shape(), joint_labels.shape())
 
-        semantic_loss = criterion_txt(encoded_text_features, joint_labels)
+        semantic_loss = F.cross_entropy(encoded_text_features, joint_labels)
 
         # joint_preds, output_global, output_small, target_global, target_small = model(im_cla=data_classify, im_q=data_query, im_k=data_key, labels=joint_labels, im_q_small=data_small)
         loss_moco_global = criterion(output_global, target_global)
@@ -121,6 +122,7 @@ def base_train(model, trainloader, criterion, criterion_txt, optimizer, schedule
         for i in range(m):
             agg_preds = agg_preds + joint_preds[i::m, i::m] / m
 
+# semantic_loss和joint_loss没经过同一个fc层
         loss = args.lamda * semantic_loss + (1 - args.lamda) * joint_loss + loss_moco
         total_loss = loss
         
