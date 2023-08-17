@@ -226,7 +226,7 @@ class MYNET(nn.Module):
                 param_k.data = param_k.data * self.m + param_q.data * (1. - self.m)
         else:
             for k, v in self.encoder_q.named_parameters():
-                if k.startswith('fc') or k.startswith('encoder.stages_3'):# or k.startswith('layer3'):
+                if k.startswith('fc') or k.startswith('encoder.stages_3'):# or k.startswith('encoder.stages_2'):
                     # if k.startswith('head.fc') or k.startswith('layers[3]'): # 冻结了stage0~2
                     self.encoder_k.state_dict()[k].data = self.encoder_k.state_dict()[k].data * self.m + v.data * (
                                 1. - self.m)
