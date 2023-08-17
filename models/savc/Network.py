@@ -441,9 +441,9 @@ class MYNET(nn.Module):
                 return x
             else:
                 b = im_q.shape[0]  # get batch size
-                # logits_classify = self.forward_metric(im_cla)  # 计算classify logits logits_classify是分类分支输出的logits,会经过softmax和交叉熵损失,进行分类任务的监督训练。
+                logits_classify = self.forward_metric(im_cla)  # 计算classify logits logits_classify是分类分支输出的logits,会经过softmax和交叉熵损失,进行分类任务的监督训练。
 
-                logits_classify, _= self.encode_q(im_cla)  # 计算classify logits logits_classify是分类分支输出的logits,会经过softmax和交叉熵损失,进行分类任务的监督训练。
+                # logits_classify, _= self.encode_q(im_cla)  # 计算classify logits logits_classify是分类分支输出的logits,会经过softmax和交叉熵损失,进行分类任务的监督训练。
 
                 _, q = self.encode_q(im_q)  # 获得query特征q
 
