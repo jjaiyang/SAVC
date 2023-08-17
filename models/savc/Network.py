@@ -110,10 +110,12 @@ class ConvNeXt(nn.Module):
         # Add new layers
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(640, num_classes)
+        self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         x = self.encoder(x)
         x = x[3]
+        x = self.relu(x)
         y = self.avgpool(x)
         y = torch.flatten(y, 1)
         y = self.fc(y)
