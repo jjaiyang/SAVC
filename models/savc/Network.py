@@ -162,13 +162,13 @@ class MYNET(nn.Module):
                 self.encoder_k.load_state_dict(pretrained_model.state_dict(), strict=False)
                 print('pretrained backbone loaded')
 
-            if self.args.pre:
-                self.encoder_q.layers[0].requires_grad = False
-                self.encoder_q.layers[1].requires_grad = False
-                self.encoder_q.layers[2].requires_grad = False
-                self.encoder_k.layers[0].requires_grad = False
-                self.encoder_k.layers[1].requires_grad = False
-                self.encoder_k.layers[2].requires_grad = False
+            # if self.args.pre:
+            #     self.encoder_q.layers[0].requires_grad = False
+            #     self.encoder_q.layers[1].requires_grad = False
+            #     self.encoder_q.layers[2].requires_grad = False
+            #     self.encoder_k.layers[0].requires_grad = False
+            #     self.encoder_k.layers[1].requires_grad = False
+            #     self.encoder_k.layers[2].requires_grad = False
 
             self.num_features = 640
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
