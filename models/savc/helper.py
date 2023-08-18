@@ -252,9 +252,9 @@ def update_fc_ft(trainloader, data_transform, model, m, session, args):
 
     if args.dataset == 'cub200':  # 样本小所以只更新predictor，这很好理解
         optimizer = torch.optim.AdamW([{'params': new_fc, 'lr': args.lr_new}],
-                                      {'params': model.encoder_q.fc.parameters(), 'lr': 0.01 * args.lr_new},
+                                      # {'params': model.encoder_q.fc.parameters(), 'lr': 0.01 * args.lr_new},
                                      weight_decay=0)  # 可以尝试像imagenet的策略一样冻结
-                                    # momentum=0.9, dampening=0.9, weight_decay=0)  # 可以尝试像imagenet的策略一样冻结
+                                     # momentum=0.9, dampening=0.9, weight_decay=0)  # 可以尝试像imagenet的策略一样冻结
 
     elif args.dataset == 'cifar100':
         optimizer = torch.optim.Adam([{'params': new_fc, 'lr': args.lr_new},
