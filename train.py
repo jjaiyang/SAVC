@@ -29,6 +29,7 @@ def get_command_line_parser():
     parser.add_argument('-milestones', nargs='+', type=int, default=[60, 70])
     parser.add_argument('-step', type=int, default=40)
     parser.add_argument('-decay', type=float, default=0.0005)
+    parser.add_argument('-decay_new', type=float, default=0.0005)
     parser.add_argument('-momentum', type=float, default=0.9)
     parser.add_argument('-gamma', type=float, default=0.1)
     parser.add_argument('-temperature', type=int, default=16)
