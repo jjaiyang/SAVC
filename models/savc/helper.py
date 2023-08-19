@@ -344,7 +344,7 @@ def update_fc_ft(trainloader, data_transform, model, m, session, args):
                 loss_moco_small = criterion(output_small, target_small)
                 loss_moco = args.alpha * loss_moco_global + args.beta * loss_moco_small
 
-                loss = args.lamda * semantic_loss + (1 - args.lamda) * joint_loss + loss_moco
+                loss = args.lamda * semantic_loss + * joint_loss + loss_moco
 
 
             optimizer.zero_grad()
