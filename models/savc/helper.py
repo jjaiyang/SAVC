@@ -93,7 +93,7 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
                 agg_preds = agg_preds + joint_preds[i::m, i::m] / m
 
             # semantic_loss和joint_loss没经过同一个fc层
-            loss = joint_loss + loss_moco
+            loss = 0.5*joint_loss + 1.5*loss_moco
 
         else:
             # 加入文本编码器咯
