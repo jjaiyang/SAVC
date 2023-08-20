@@ -123,7 +123,7 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
                 else:
                     label_index = (joint_labels[i].item() - 1) // m
                     classname = classes[label_index]
-                    text = f'A 190 degree rotated image about {classname}'
+                    text = f'A 180 degree rotated image about {classname}'
                 semantic_text.append(text)
             # print(semantic_text)
 
@@ -316,7 +316,7 @@ def test(model, testloader, epoch, transform, args, session):
             b = data.size()[0]
             data = transform(data)
             m = data.size()[0] // b
-            joint_preds = model(data)
+            joint_preds = model(data)#在这改，加一个输出的特征
             joint_preds = joint_preds[:, :test_class*m]
             
             agg_preds = 0
