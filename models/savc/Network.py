@@ -250,7 +250,7 @@ class MYNET(nn.Module):
         b = self.encoder_k(x)
         a = F.adaptive_avg_pool2d(a, 1)
         a = a.squeeze(-1).squeeze(-1)
-        return a, b # torch.Size([n, 768, 7, 7]) torch.Size([n, 128])
+        return a, b # torch.Size([n, 768]) torch.Size([n, 128])
 
     # '''
     # im_cla是不经过变换的原始图像,用于分类预测,计算classify logits。

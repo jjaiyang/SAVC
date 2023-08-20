@@ -40,7 +40,7 @@ class FSCILTrainer(Trainer):
 
     def get_optimizer_base(self):
 
-        optimizer = torch.optim.SGD(self.model.parameters(), self.args.lr_base, momentum=0.9, nesterov=True,
+        optimizer = torch.optim.AdamW(self.model.parameters(), self.args.lr_base,
                                     weight_decay=self.args.decay) # 直接获取的MYNET的所有参数
         if self.args.schedule == 'Step':
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=self.args.step, gamma=self.args.gamma)
