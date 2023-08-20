@@ -152,7 +152,7 @@ def base_train(model, trainloader, criterion, optimizer, scheduler, epoch, trans
                 agg_preds = agg_preds + joint_preds[i::m, i::m] / m
 
             # semantic_loss和joint_loss没经过同一个fc层
-            loss = args.lamda * semantic_loss + (1 - args.lamda) * joint_loss + loss_moco
+            loss = args.lamda * semantic_loss + joint_loss + loss_moco
 
         total_loss = loss
         
