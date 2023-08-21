@@ -185,20 +185,20 @@ class MYNET(nn.Module):
         self.T = self.args.moco_t
 
         if self.args.mlp:  # hack: brute-force replacement
-            self.encoder_q.fc = nn.Sequential(
-                nn.Linear(self.num_features, self.num_features * self.args.hidden_multi), nn.ReLU(),
-                nn.Linear(self.num_features * self.args.hidden_multi, self.num_features), self.encoder_q.fc
-            )
-            self.encoder_k.fc = nn.Sequential(
-                nn.Linear(self.num_features, self.num_features * self.args.hidden_multi), nn.ReLU(),
-                nn.Linear(self.num_features * self.args.hidden_multi, self.num_features), self.encoder_k.fc
-            )
             # self.encoder_q.fc = nn.Sequential(
-            #     nn.Linear(self.num_features, self.num_features), nn.ReLU(), self.encoder_q.fc
+            #     nn.Linear(self.num_features, self.num_features * self.args.hidden_multi), nn.ReLU(),
+            #     nn.Linear(self.num_features * self.args.hidden_multi, self.num_features), self.encoder_q.fc
             # )
             # self.encoder_k.fc = nn.Sequential(
-            #     nn.Linear(self.num_features, self.num_features), nn.ReLU(), self.encoder_k.fc
+            #     nn.Linear(self.num_features, self.num_features * self.args.hidden_multi), nn.ReLU(),
+            #     nn.Linear(self.num_features * self.args.hidden_multi, self.num_features), self.encoder_k.fc
             # )
+            self.encoder_q.fc = nn.Sequential(
+                nn.Linear(self.num_features, self.num_features), nn.ReLU(), self.encoder_q.fc
+            )
+            self.encoder_k.fc = nn.Sequential(
+                nn.Linear(self.num_features, self.num_features), nn.ReLU(), self.encoder_k.fc
+            )
 
         for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
             param_k.data.copy_(param_q.data)  # initialize
