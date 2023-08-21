@@ -254,7 +254,7 @@ def update_fc_ft(trainloader, data_transform, model, m, session, args):
                                     momentum=0.9, dampening=0.9, weight_decay=0)
         
     if args.dataset == 'cub200': # 样本小所以只更新predictor，这很好理解
-        optimizer = torch.optim.SGD([{'params': new_fc, 'lr': args.lr_new}],
+        optimizer = torch.optim.AdamW([{'params': new_fc, 'lr': args.lr_new}],
                                     momentum=0.9, dampening=0.9, weight_decay=0) # 可以尝试像imagenet的策略一样冻结
         
     elif args.dataset == 'cifar100':
